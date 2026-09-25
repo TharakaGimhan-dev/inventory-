@@ -4,16 +4,16 @@ Multi-tenant office asset & inventory register, sold as a subscription.
 
 **`SAAS_SPEC.md` is the single source of truth — read it before changing anything.**
 
-**Current state: Phase 1 (Tenancy & auth) complete.** Registration, login, refresh
-tokens, tenant switching, roles, and the tenant-isolation layer are live and tested.
-The asset register itself is Phase 2.
+**Current state: Phase 2 (Core register) complete.** Tenancy, auth, and the asset
+register — capture, search, movements, locations, categories and an append-only audit
+trail — are live and tested. The web app is Phase 3; plans and billing are Phases 4–5.
 
 ## Layout
 
 ```
 apps/api/            NestJS API
   src/configs/       database, redis, env validation
-  src/modules/       auth, tenant, user, billing, health
+  src/modules/       auth, tenant, user, asset, audit, billing, health
   src/common/        guards, pipes, decorators shared across modules
   migrations/        schema changes, run before every deploy
   config/            sequelize-cli config (the CLI cannot read Nest's)
@@ -92,6 +92,35 @@ Sequelize hooks fire, which a mock cannot prove.
 - Roles are ranked, so `@Roles(ADMIN)` admits `owner` without listing it.
 - Login compares against a dummy hash when the account does not exist, so response
   timing cannot be used to enumerate customers.
+
+## The register
+
+| Route | Minimum role | Note |
+|---|---|---|
+| `GET /assets` | viewer | Search by name, code or serial; filter by status, kind, location, category |
+| `POST /assets` | entry | The code is issued by the server — a client-sent `code` is ignored |
+| `PATCH /assets/:id` | entry | `code` can never be changed |
+| `POST /assets/:id/move` | entry | Records a location or custody change |
+| `DELETE /assets/:id` | admin | Soft delete — the code stays taken |
+| `GET /audit` | admin | Read-only. No write route exists at any role |
+
+**Asset codes** (`TS-0001`, `TS-0002`, …) are unique per tenant, gapless, and never
+reused. The counter is incremented by a single `INSERT … ON CONFLICT DO UPDATE …
+RETURNING` inside the same transaction as the asset insert, so Postgres serialises
+concurrent captures itself. A capture that fails rolls the increment back and leaves
+no hole; a deleted asset never releases its code, because that code is printed on a
+label stuck to real equipment.
+
+**`replacementValue`** is admin-and-owner only — it drives the insurance number, so an
+entry clerk fixing a serial number cannot move it.
+
+**Audit entries** are append-only. The controller has no write route, and the model
+itself refuses `update` and `destroy`, so a tenant admin cannot erase the record of
+their own edit through any path.
+
+```bash
+npm run test:isolation
+```
 
 ## Health checks
 

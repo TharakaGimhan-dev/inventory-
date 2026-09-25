@@ -10,6 +10,8 @@ import { TenantScopeHook } from './common/services/tenant-scope.hook';
 import { envSchema } from './configs/env.validation';
 import { DatabaseModule } from './configs/database/database.module';
 import { RedisModule } from './configs/redis/redis.module';
+import { AssetModule } from './modules/asset/asset.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { HealthModule } from './modules/health/health.module';
@@ -29,6 +31,8 @@ import { TenantModule } from './modules/tenant/tenant.module';
     AuthModule,
     TenantModule,
     BillingModule,
+    AuditModule,
+    AssetModule,
   ],
   providers: [
     TenantScopeHook,

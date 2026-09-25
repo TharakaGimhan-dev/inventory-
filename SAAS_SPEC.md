@@ -177,7 +177,11 @@ This is the successor to `orgs/{orgId}/members/{uid}`.
 `movedBy`, `note`.
 
 **`counters`** — `UNIQUE (tenantId, key)`, `value`. Successor to `counters/assetCode`.
-Incremented inside the same transaction as the asset insert, with `SELECT … FOR UPDATE`.
+Incremented inside the same transaction as the asset insert, by a single
+`INSERT … ON CONFLICT DO UPDATE … RETURNING` — Postgres takes the row lock itself, so
+two concurrent captures are serialised by the database. A read-then-write shape
+(`findOrCreate`, or `SELECT` then `UPDATE`) leaves a window where both transactions see
+the same number.
 
 **`audit_entries`** — append-only.
 `tenantId`, `actorUserId`, `entity`, `entityId`, `action`, `before` (JSONB), `after` (JSONB),
@@ -415,7 +419,7 @@ run on deploy via a Railway release command.
 |---|---|---|
 | **0 — Foundation** | Nest skeleton, Postgres + Redis wired, migrations, health check, Swagger, CI, Railway deploy. | `/api/v1/health` green on Railway. **Done.** |
 | **1 — Tenancy & auth** | tenants, users, memberships, JWT + refresh, roles guard, tenant scope hook. | The §3.2 isolation suite passes. **Done.** |
-| **2 — Core register** | locations, categories, assets, code counter, movements, audit entries. | Two tenants each hold `TS-0001` and cannot see each other's. |
+| **2 — Core register** | locations, categories, assets, code counter, movements, audit entries. | Two tenants each hold `TS-0001` and cannot see each other's. **Done.** |
 | **3 — Web port** | Existing shell on the new API, capture form, register list, offline outbox. | A phone captures an asset offline and it syncs. |
 | **4 — Plans & quotas** | plans, subscriptions, usage counters, QuotaGuard, upgrade prompts. | Free tenant is blocked at asset 101 with a 402 naming the limit. |
 | **5 — Billing** | PayHere, webhooks, invoices, dunning, manual invoicing. | A real card moves a tenant Free → Starter. |
