@@ -25,8 +25,9 @@ DATABASE_URL=postgres://postgres@127.0.0.1:5432/inventory_test npm run test:isol
 | `asset-register.spec.ts` | Asset codes are unique, gapless and never reused; audit entries are append-only |
 | `quota.spec.ts` | Usage counters stay accurate under concurrency and rollback; plan limits hold at the boundary |
 | `billing.spec.ts` | A forged or tampered payment callback is refused; a retry is recognised as a duplicate and a renewal is not |
+| `export.spec.ts` | CSV escaping and formula neutralisation; the import parser reports every problem with its line number |
 
-52 tests. They run serially (`--runInBand`) because each rebuilds the schema with
+70 tests. They run serially (`--runInBand`) because each rebuilds the schema with
 `sync({ force: true })` — sharing one database under parallel workers, they drop
 each other's tables mid-test. Each of them exists because the property it checks is one a future
 change could plausibly break without any other test noticing.
@@ -53,6 +54,7 @@ cd apps/web
 npm run test:e2e            # auth, capture, offline outbox
 node tests/quota-e2e.mjs    # plan limits and the upgrade prompt
 node tests/billing-e2e.mjs  # the plan screen, invoices and checkout
+node tests/tools-e2e.mjs    # exports, QR labels and bulk import
 ```
 
 Set `PLAYWRIGHT_CHROMIUM_PATH` if the machine already has a Chromium; otherwise
@@ -71,6 +73,10 @@ These cover what only a browser can prove:
   paid invoice, and an upgrade button only for plans they are not already on.
 - Returning from a checkout says the payment is **being confirmed**, never that
   it succeeded — only the webhook knows that.
+- A plan-gated download shows an upgrade prompt and does **not** navigate the
+  tab to a JSON error page.
+- A bad import row is reported with its line number, Import stays disabled until
+  the file is clean, and a clean file lands in the register.
 
 Both scripts exit non-zero on failure, so they fail a CI job rather than printing
 `FAIL` and passing.

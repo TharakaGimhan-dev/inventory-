@@ -78,6 +78,20 @@ export class PlanService {
     return { ...FALLBACK_LIMITS, ...(plan?.limits ?? {}), ...overrides };
   }
 
+  /**
+   * Whether a tenant's plan includes a named feature.
+   *
+   * Free tiers get csvExport on purpose: the promise that a customer can
+   * always take their data out is not a paid feature, it is the reason they
+   * can trust us with it in the first place.
+   */
+  async hasFeature(tenantId: string, feature: string): Promise<boolean> {
+    if (feature === 'csvExport') return true;
+
+    const plan = await this.planFor(tenantId);
+    return plan?.features?.[feature] === true;
+  }
+
   static isUnlimited(limit: number): boolean {
     return limit === UNLIMITED;
   }

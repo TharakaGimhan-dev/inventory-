@@ -2,6 +2,44 @@
 
 Phases are defined in [`SAAS_SPEC.md`](SAAS_SPEC.md) §10.
 
+## Phase 6 — Paid features
+
+What makes Starter and Business differ in the product rather than only on the
+price page. Features are data on the plan row, gated by `@RequiresFeature`,
+which answers `402` with the feature name so the app prompts an upgrade.
+
+- **Export**: CSV on every plan and in every subscription state, written by
+  hand rather than through a library — it is the promise a customer can always
+  leave, so it should not depend on a package. Excel and a one-page PDF summary
+  are paid.
+- **QR label sheets** (paid): 24 to an A4 page on common Avery stock. The QR
+  encodes the asset code, not a URL — a URL ties every printed label to a domain
+  we could then never change.
+- **Bulk import** (admin): all-or-nothing, with every problem reported at once
+  with line numbers, and the plan limit checked against the whole file up front.
+  Locations and categories named in the file are created as needed.
+- **Custom fields**: defined in `tenants.settings`, so adding one is a settings
+  change rather than a migration. Limited by plan.
+- **API keys** (Business): SHA-256 hashed, shown once, never stored. Capped at
+  viewer or entry — an unattended credential should not be able to delete the
+  register or change billing. Revoked, not deleted.
+
+CSV writing neutralises formula injection: a value beginning `=`, `+`, `-` or
+`@` is prefixed, because otherwise Excel executes whatever someone typed into an
+asset name. Fields are quoted and inner quotes doubled, and the file carries a
+UTF-8 BOM so Sinhala text does not open as mojibake.
+
+Three bugs found by running it rather than compiling it:
+
+- `GET /assets/:id` swallowed `/assets/export` and answered "uuid is expected".
+  Nest matches in module-registration order, so ExportModule now precedes
+  AssetModule, with a comment saying it must stay there.
+- An API key's `lastUsedAt` never recorded. The write ran after the
+  tenant-scope bypass closed, so the hook threw and a bare `.catch()` hid it —
+  and last-use is exactly what a customer checks before revoking a key.
+- The toast overlaid the page and intercepted clicks, blocking the Import
+  button underneath it.
+
 ## Phase 5 — Billing
 
 Subscriptions, invoices, dunning and read-only enforcement, behind a

@@ -60,6 +60,13 @@ does its own arithmetic on a limit, so it cannot disagree with what the server
 will enforce. Bars warn at 80% rather than only at the wall: discovering a limit
 by being refused mid-stocktake means already having lost your place.
 
+## Downloads
+
+Files are fetched and saved from a blob, never linked to directly. The API needs
+the auth cookie, and it answers `402` for a feature the plan does not include —
+a plain link would navigate the whole tab to a JSON error page instead of showing
+an upgrade prompt.
+
 ## End-to-end test
 
 With the API and the web app both running, and a user that can sign in:

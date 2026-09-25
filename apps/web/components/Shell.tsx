@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth';
 const TABS = [
   { href: '/register', label: 'Register', glyph: '▤' },
   { href: '/capture', label: 'Capture', glyph: '＋' },
+  { href: '/tools', label: 'Tools', glyph: '⇪' },
   { href: '/more', label: 'More', glyph: '⋯' },
 ];
 

@@ -5,9 +5,10 @@ SMEs; successor to the single-organisation **TS Asset Register**.
 
 **[`SAAS_SPEC.md`](SAAS_SPEC.md) is the single source of truth — read it before changing anything.**
 
-**Current state: Phase 5 complete.** A working product with plan limits enforced
-and a payment flow end to end. PayHere's field names and hash formulas still need
-verifying against a live merchant account — see
+**Current state: Phase 6 complete.** The whole product: capture, register,
+offline sync, plans, payments, exports, QR labels, bulk import and API keys. Only
+the marketing site and onboarding (Phase 7) remain. PayHere's field names and
+hash formulas still need verifying against a live merchant account — see
 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#before-taking-real-money).
 
 | | |
@@ -16,7 +17,7 @@ verifying against a live merchant account — see
 | API | NestJS 11 — Sequelize on PostgreSQL, Redis for sessions and idempotency |
 | Host | Railway — `web`, `api`, `postgres`, `redis` |
 | Payments | PayHere, behind a provider interface — webhook-verified, exactly-once |
-| Tests | 52 API tests + 32 browser checks, all against real Postgres and Redis |
+| Tests | 70 API tests + 45 browser checks, all against real Postgres and Redis |
 
 ## Documentation
 
@@ -125,8 +126,10 @@ requests arrive at once. The increment itself carries the condition.
 URL is a navigation, not a payment. Providers retry, and a retry applied twice
 bills a customer twice.
 
-**Export is never blocked.** At any subscription state, a customer can take their
-data and leave.
+**Export is never blocked.** At any subscription state and on any plan, a
+customer can take their data and leave. CSV is written by hand rather than
+through a library, so the one promise that matters most has no dependency to
+break.
 
 ## Deploying
 

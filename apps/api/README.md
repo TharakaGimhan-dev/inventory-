@@ -28,7 +28,9 @@ every endpoint is a map of the API for anyone probing it.
 | `tenant` | `/me`, tenant settings, member list |
 | `asset` | The register: assets, movements, locations, categories, asset codes |
 | `audit` | The append-only trail |
-| `billing` | Plans, limits, metered usage |
+| `billing` | Plans, limits, metered usage, subscriptions, invoices |
+| `export` | CSV, Excel, PDF report, QR labels, bulk import |
+| `apikey` | Customer API credentials |
 | `health` | The deploy gate |
 
 ## Tenant isolation
@@ -127,6 +129,48 @@ blocked, at any subscription state**.
 ⚠️ The PayHere field names and hash formulas are written from documentation, not
 a live integration. See [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md#before-taking-real-money)
 before real money moves.
+
+## Exports, labels and import
+
+CSV is written by hand in `service/csv.ts` rather than through a library. Export
+is the promise that a customer can always leave, so it should not depend on a
+package that might break or be abandoned — and the whole format is escaping and
+line endings.
+
+Three things that file gets right and are easy to get wrong:
+
+- A value beginning `=`, `+`, `-` or `@` is prefixed with an apostrophe. Excel
+  executes those as formulas, and the value came from whatever someone typed
+  into an asset name.
+- Fields containing a comma, quote or newline are quoted, inner quotes doubled.
+- A UTF-8 BOM, or Excel on Windows reads the file as Latin-1 and Sinhala text
+  opens as mojibake — which the customer reads as lost data.
+
+**Import is all-or-nothing.** Every problem is collected with its line number
+rather than stopping at the first, and the plan limit is checked against the
+whole file before anything is written, so the answer is "this file needs 400
+slots and you have 100" rather than a refusal on row 101 with 100 rows already
+in. Locations and categories named in the file are created as needed.
+
+**QR labels** encode the asset code, not a URL. A URL ties every printed sticker
+to a domain we would then be unable to change.
+
+⚠️ `ExportModule` must stay registered **before** `AssetModule` in
+`app.module.ts`. Nest matches routes in registration order, and
+`AssetController`'s `@Get(':id')` otherwise swallows `/assets/export`.
+
+## API keys
+
+The key is never stored — only a SHA-256 hash, so a leak of the table hands
+nobody a working credential. SHA-256 rather than bcrypt because a key is 32
+random bytes we generated, not a human-chosen password: there is nothing to
+brute-force, and the check runs on every API request.
+
+A key is capped at `viewer` or `entry`. An unattended credential should not be
+able to delete the register or change what the company is billed.
+
+Keys are revoked, never deleted: the audit trail refers to them, and "when did
+this stop working" is worth being able to answer.
 
 ## Asset codes
 

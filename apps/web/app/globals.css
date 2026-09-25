@@ -82,6 +82,8 @@ input, select, textarea, button {
   color: inherit;
 }
 
+textarea { resize: vertical; min-height: 90px; }
+
 input, select, textarea {
   width: 100%;
   padding: 11px 12px;
@@ -142,6 +144,9 @@ button.ghost {
 }
 
 .toast {
+  /* A toast reports; it must never block. Without this it sits over the
+     bottom of the page and swallows clicks meant for the buttons under it. */
+  pointer-events: none;
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
@@ -154,6 +159,9 @@ button.ghost {
   z-index: 20;
   max-width: calc(100% - 32px);
 }
+
+/* The one part of a toast that is meant to be clicked. */
+.toast button { pointer-events: auto; }
 
 /* Header */
 .header {

@@ -16,6 +16,8 @@ import { AssetService } from './service/asset.service';
   ],
   controllers: [AssetController, LocationController, CategoryController],
   providers: [AssetService, AssetCodeService],
-  exports: [AssetService, SequelizeModule],
+  // AssetCodeService is exported for the import path: a bulk import issues
+  // codes the same way a single capture does, so both stay gapless.
+  exports: [AssetService, AssetCodeService, SequelizeModule],
 })
 export class AssetModule {}

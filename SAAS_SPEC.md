@@ -270,6 +270,17 @@ rather than as a special code path.
 `-1` means unlimited. Changing a limit is a row update, not a deploy. A tenant may carry a
 per-tenant override in `tenants.settings.limitOverrides` for the founding-customer case.
 
+### 6.2b Features
+
+`plans.features` is JSONB alongside the limits, and `@RequiresFeature('reports')` gates a
+route on it. A capability moves between tiers by editing a row.
+
+`csvExport` is **always true**, whatever the plan says. The promise that a customer can
+take their data out is not a paid feature — it is why they can trust us with it.
+
+A gated route answers `402` with the feature name, so the app shows an upgrade prompt
+rather than an error.
+
 ### 6.3 Enforcement
 
 Two places, and only one of them is authoritative.
@@ -367,7 +378,18 @@ DELETE /assets/:id                    owner|admin, soft delete
 POST   /assets/:id/move               custody/location change
 GET    /assets/:id/history
 POST   /assets/bulk-import            owner|admin, CSV
-GET    /assets/export                 owner|admin, csv|xlsx|pdf — always available
+GET    /assets/export                 CSV — every plan, every subscription state
+GET    /assets/export.xlsx            feature: reports
+GET    /assets/report.pdf             feature: reports
+POST   /assets/labels.pdf             feature: labels, QR sheet
+POST   /assets/import                 owner|admin, CSV, all-or-nothing
+
+GET    /tenant/custom-fields
+PUT    /tenant/custom-fields          owner|admin, limited by plan
+
+GET    /api-keys                      owner|admin, feature: api
+POST   /api-keys                      secret shown once, never stored
+DELETE /api-keys/:id                  revoked, not deleted
 
 GET/POST/PATCH/DELETE  /locations  /categories
 
@@ -464,7 +486,7 @@ run on deploy via a Railway release command.
 | **3 — Web port** | Existing shell on the new API, capture form, register list, offline outbox. | A phone captures an asset offline and it syncs. **Done.** |
 | **4 — Plans & quotas** | plans, usage counters, QuotaGuard, upgrade prompts. | Free tenant is blocked at asset 101 with a 402 naming the limit. **Done.** |
 | **5 — Billing** | PayHere, webhooks, invoices, dunning. | A real card moves a tenant Free → Starter. **Built; needs sandbox verification against a live merchant account.** |
-| **6 — Paid features** | Reports, label sheets, custom fields, bulk import, API keys. | Starter/Business differ in the product, not just the price page. |
+| **6 — Paid features** | Reports, label sheets, custom fields, bulk import, API keys. | Starter/Business differ in the product, not just the price page. **Done.** |
 | **7 — Launch** | Marketing site, pricing page, onboarding, docs, support inbox. | The two customers are on Starter. |
 
 Phases 0–3 get your two customers a working product on the free tier. Phases 4–5 are what

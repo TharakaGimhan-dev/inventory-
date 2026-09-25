@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { FeatureGuard } from './common/guards/feature.guard';
 import { QuotaGuard } from './common/guards/quota.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { SubscriptionAccessGuard } from './common/guards/subscription-access.guard';
@@ -13,10 +14,12 @@ import { TenantScopeHook } from './common/services/tenant-scope.hook';
 import { envSchema } from './configs/env.validation';
 import { DatabaseModule } from './configs/database/database.module';
 import { RedisModule } from './configs/redis/redis.module';
+import { ApiKeyModule } from './modules/apikey/apikey.module';
 import { AssetModule } from './modules/asset/asset.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { ExportModule } from './modules/export/export.module';
 import { HealthModule } from './modules/health/health.module';
 import { TenantModule } from './modules/tenant/tenant.module';
 
@@ -37,6 +40,11 @@ import { TenantModule } from './modules/tenant/tenant.module';
     TenantModule,
     BillingModule,
     AuditModule,
+    ApiKeyModule,
+    // Before AssetModule, and it has to stay there. Nest matches routes in the
+    // order controllers are registered, and AssetController has a @Get(':id') -
+    // which otherwise swallows /assets/export and answers "uuid is expected".
+    ExportModule,
     AssetModule,
   ],
   providers: [
@@ -51,11 +59,14 @@ import { TenantModule } from './modules/tenant/tenant.module';
     // 3. Subscription state. Narrows an unpaid tenant to read-only, while
     //    never blocking a read and never blocking export.
     { provide: APP_GUARD, useClass: SubscriptionAccessGuard },
-    // 4. Plan limits. After authorization on purpose: a viewer hitting a create
+    // 4. Paid features. Like the quota guard, this answers 402 rather than
+    //    403: the tenant is not forbidden, their plan does not include it.
+    { provide: APP_GUARD, useClass: FeatureGuard },
+    // 5. Plan limits. After authorization on purpose: a viewer hitting a create
     //    route should hear 403, not an upgrade pitch for something they would
     //    not be allowed to do anyway.
     { provide: APP_GUARD, useClass: QuotaGuard },
-    // 5. Bind the tenant from the verified token, so every query below this
+    // 6. Bind the tenant from the verified token, so every query below this
     //    point is scoped. It runs after both guards by construction:
     //    interceptors always run after guards in Nest's request pipeline.
     { provide: APP_INTERCEPTOR, useClass: TenantContextInterceptor },

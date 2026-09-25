@@ -44,8 +44,14 @@ wrong, write a correcting entry.
 the write itself. A check-then-act guard lets concurrent requests past, and this
 has already happened once.
 
-**Never disable export.** Whatever the subscription state, a customer can get
-their data out.
+**Never disable export.** Whatever the subscription state and whatever the plan,
+a customer can get their data out. CSV has no `@RequiresFeature` and no role gate
+above viewer, and the subscription guard exempts its path.
+
+**Never write a CSV field without neutralising a leading `=`, `+`, `-` or `@`.**
+Excel executes them, and the value came from a user.
+
+**Never store an API key.** Only its hash.
 
 **Never give a secret a `NEXT_PUBLIC_` prefix.** That prefix ships it to the
 browser.
@@ -57,6 +63,12 @@ URL is a navigation, not a payment, and anyone can type one.
 
 **Never process a payment callback without checking it is a duplicate.**
 Providers retry. A retry applied twice bills a customer twice.
+
+## Route ordering
+
+`ExportModule` is registered before `AssetModule` in `app.module.ts` and must
+stay there. Nest matches routes in registration order, and `AssetController` has
+a `@Get(':id')` that otherwise swallows `/assets/export`.
 
 ## Adding a tenant-owned table
 
