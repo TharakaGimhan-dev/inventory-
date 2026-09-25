@@ -88,9 +88,19 @@ Isolation must not depend on a developer remembering a `where` clause. Three lay
 2. **Request context** — `TenantContextMiddleware` resolves the tenant from the JWT and
    stores it in an `AsyncLocalStorage`. Controllers never read `tenantId` from the request
    body or a query param; a client-supplied `tenantId` is ignored, always.
-3. **Query layer** — a Sequelize `addHook('beforeFind' | 'beforeSave' | 'beforeDestroy')`
-   injects `tenantId` from the context into every query on a tenant-owned model, and throws
-   if the context is empty. A query cannot be written that crosses tenants.
+3. **Query layer** — Sequelize hooks (`beforeFind`, `beforeCount`, `beforeBulkUpdate`,
+   `beforeBulkDestroy`, `beforeValidate`) inject `tenantId` from the context into every
+   query on a tenant-owned model, and throw if the context is empty. A query cannot be
+   written that crosses tenants.
+
+   The hooks are registered **per model**, not on the connection: Sequelize's
+   connection-level `beforeFind` receives an options object with no `model` on it, so a
+   global hook cannot tell which table it is filtering.
+
+   A query or write that explicitly names a *different* tenant is **rejected**, not
+   rewritten. Silently correcting it would leave the query meaning something other than
+   what it says, and a real isolation bug would then return plausible data instead of
+   an error somebody notices.
 
 Only the platform-admin module (§5.2) may bypass layer 3, through an explicit
 `runWithoutTenantScope()` call that logs every use.
@@ -102,13 +112,15 @@ The equivalent of the old `tests/rules/` suite. A tenant-isolation suite that mu
 | # | Case | Expected |
 |---|---|---|
 | 1 | Tenant A's token reads tenant B's asset by id | 404 (not 403 — no existence leak) |
-| 2 | Tenant A creates an asset with `tenantId: B` in the body | Row is created under A |
+| 2 | Tenant A creates an asset with `tenantId: B` in the body | Rejected, nothing written. A create with no `tenantId` is stamped with A |
 | 3 | Two tenants both create asset code `TS-0001` | Both succeed |
 | 4 | Any query issued with an empty tenant context | Throws, does not return all rows |
 | 5 | Unauthenticated request to any tenant route | 401 |
 | 6 | `viewer` role attempts a create | 403 |
 | 7 | Nobody, any role, can edit `code` | 400 |
 | 8 | Nobody can delete an audit entry | 403 |
+| 9 | A query whose `where` names tenant B, run as A | Rejected, not silently rewritten to A |
+| 10 | Two tenants query concurrently | Neither sees the other's rows |
 
 Cases 5–8 are carried over from the Firebase spec §11.1 — the rules they tested still hold,
 they are just enforced in a different place now.
@@ -401,8 +413,8 @@ run on deploy via a Railway release command.
 
 | Phase | Delivers | Done when |
 |---|---|---|
-| **0 — Foundation** | Nest skeleton, Postgres + Redis wired, migrations, health check, Swagger, CI, Railway deploy. | `/api/v1/health` green on Railway. |
-| **1 — Tenancy & auth** | tenants, users, memberships, JWT + refresh, roles guard, tenant scope hook. | The §3.2 isolation suite passes. |
+| **0 — Foundation** | Nest skeleton, Postgres + Redis wired, migrations, health check, Swagger, CI, Railway deploy. | `/api/v1/health` green on Railway. **Done.** |
+| **1 — Tenancy & auth** | tenants, users, memberships, JWT + refresh, roles guard, tenant scope hook. | The §3.2 isolation suite passes. **Done.** |
 | **2 — Core register** | locations, categories, assets, code counter, movements, audit entries. | Two tenants each hold `TS-0001` and cannot see each other's. |
 | **3 — Web port** | Existing shell on the new API, capture form, register list, offline outbox. | A phone captures an asset offline and it syncs. |
 | **4 — Plans & quotas** | plans, subscriptions, usage counters, QuotaGuard, upgrade prompts. | Free tenant is blocked at asset 101 with a 402 naming the limit. |

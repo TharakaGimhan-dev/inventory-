@@ -2,6 +2,7 @@
 // deploy succeeded. If it does not return 200 the new version is not promoted,
 // so a build that cannot reach Postgres never replaces the running one.
 import { Controller, Get } from '@nestjs/common';
+import { Public } from '../../../common/decorators/public.decorator';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   HealthCheck,
@@ -10,6 +11,10 @@ import {
 } from '@nestjs/terminus';
 import { RedisHealthIndicator } from '../service/redis.health';
 
+// Public: authentication is global, and a health check that requires a token is
+// a health check the platform cannot call - every deploy would fail its gate.
+// It exposes no tenant data, only whether Postgres and Redis answer.
+@Public()
 @ApiTags('health')
 @Controller('health')
 export class HealthController {

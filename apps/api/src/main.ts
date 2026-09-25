@@ -3,6 +3,7 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -12,6 +13,10 @@ async function bootstrap() {
 
   // helmet sets the security headers a public API should always send.
   app.use(helmet());
+
+  // The JWT strategy reads the access token from an httpOnly cookie, which
+  // requires the cookies to be parsed first.
+  app.use(cookieParser());
 
   // Every route is versioned from day one. Changing the shape of a response later
   // means adding /v2, not breaking the customers already on /v1.
