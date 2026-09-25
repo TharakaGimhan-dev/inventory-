@@ -70,6 +70,92 @@
   .btn.alt{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3);}
   .tone{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:12px;font-size:12.5px;}
   .tone ul{margin:6px 0 0 16px;padding:0;color:var(--slate);line-height:1.6;}
+  /* ---- shadcn-style UI mockups ---- */
+  .sc{--bd:#E4E4E7;--mut:#71717A;--bg:#FAFAFA;}
+  .phones{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:16px;}
+  .phone{border:6px solid #111827;border-radius:22px;background:#fff;height:126mm;overflow:hidden;
+         display:flex;flex-direction:column;box-shadow:0 6px 18px rgba(11,18,32,.12);}
+  .pbar{display:flex;justify-content:space-between;padding:5px 9px;font-size:6.5px;color:#71717A;background:#fff;}
+  .pbody{flex:1;padding:7px 8px;background:#FAFAFA;position:relative;overflow:hidden;}
+  .ptitle{font-size:11px;font-weight:800;display:flex;justify-content:space-between;margin-bottom:6px;}
+  .ptitle.small{font-size:8.5px;margin:9px 0 5px;}
+  .search{border:1px solid #E4E4E7;background:#fff;border-radius:8px;padding:5px 7px;font-size:7px;color:#A1A1AA;}
+  .chips{display:flex;gap:4px;margin:6px 0;}
+  .chips i{font-style:normal;font-size:6.5px;border:1px solid #E4E4E7;background:#fff;border-radius:999px;padding:3px 6px;color:#52525B;}
+  .chips i.on{background:#0B1220;color:#fff;border-color:#0B1220;}
+  .offline{background:#FEF6E7;border:1px solid #F5D9A0;color:#8A5B00;font-size:6.5px;border-radius:7px;padding:4px 6px;margin-bottom:6px;}
+  .item{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #E4E4E7;border-radius:9px;padding:6px;margin-bottom:5px;}
+  .item .thumb{width:17px;height:17px;border-radius:5px;background:#E4E4E7;flex:0 0 auto;}
+  .item div{flex:1;min-width:0;} .item b{display:block;font-size:7.5px;}
+  .item span{display:block;font-size:6.2px;color:#71717A;}
+  .item em{font-style:normal;font-size:6px;font-weight:700;border-radius:999px;padding:2px 5px;}
+  .ok{background:#E7F5EF;color:#0A6B4A;} .warn{background:#FEF0E0;color:#94590A;} .mute{background:#F1F1F3;color:#52525B;}
+  .fab{position:absolute;right:9px;bottom:9px;background:#0E5FD8;color:#fff;font-size:8px;font-weight:800;
+       padding:8px 13px;border-radius:999px;box-shadow:0 4px 10px rgba(14,95,216,.35);}
+  .tabbar{display:flex;border-top:1px solid #E4E4E7;background:#fff;}
+  .tabbar i{flex:1;text-align:center;font-style:normal;font-size:6px;color:#A1A1AA;padding:6px 0;}
+  .tabbar i.on{color:#0E5FD8;font-weight:800;}
+  .pbody.scan{background:#1B2434;padding:0;display:flex;flex-direction:column;}
+  .viewfinder{position:relative;height:38mm;margin:8px;border-radius:12px;background:#2A3648;display:flex;align-items:center;justify-content:center;}
+  .corner{position:absolute;width:13px;height:13px;border:2px solid #00C2A8;}
+  .corner.tl{left:8px;top:8px;border-right:0;border-bottom:0;border-radius:4px 0 0 0;}
+  .corner.tr{right:8px;top:8px;border-left:0;border-bottom:0;border-radius:0 4px 0 0;}
+  .corner.bl{left:8px;bottom:8px;border-right:0;border-top:0;border-radius:0 0 0 4px;}
+  .corner.br{right:8px;bottom:8px;border-left:0;border-top:0;border-radius:0 0 4px 0;}
+  .laser{position:absolute;left:14px;right:14px;top:52%;height:2px;background:#00C2A8;box-shadow:0 0 8px #00C2A8;}
+  .qrmini{width:40px;height:40px;background:#fff;border-radius:6px;padding:3px;}
+  .scanhint{text-align:center;color:#C6CEDA;font-size:6.5px;margin:-3px 0 7px;}
+  .sheet{background:#fff;border-radius:14px 14px 0 0;padding:8px;flex:1;}
+  .grab{width:26px;height:3px;border-radius:2px;background:#D4D4D8;margin:0 auto 7px;}
+  .field{border:1px solid #E4E4E7;border-radius:8px;padding:4px 6px;margin-bottom:5px;font-size:6px;color:#71717A;}
+  .field span{display:block;font-size:7.5px;color:#0B1220;font-weight:600;margin-top:1px;}
+  .photorow{display:flex;gap:5px;margin-bottom:7px;}
+  .ph{width:30px;height:30px;border:1px dashed #C9CDD4;border-radius:8px;font-size:6px;color:#A1A1AA;text-align:center;padding-top:5px;}
+  .ph.shot{border:1px solid #E4E4E7;background:linear-gradient(135deg,#D9E2F0,#BFCEE4);}
+  .primary{background:#0B1220;color:#fff;text-align:center;font-size:8px;font-weight:800;padding:8px;border-radius:9px;}
+  .ghost{border:1px solid #E4E4E7;background:#fff;text-align:center;font-size:7.5px;font-weight:700;padding:7px;border-radius:9px;margin-top:8px;}
+  .hero-img{height:22mm;border-radius:10px;background:linear-gradient(135deg,#DCE5F3,#B9C9E3);border:1px solid #E4E4E7;}
+  .codeline{font-size:6.5px;color:#71717A;margin-top:-3px;}
+  .badges{display:flex;gap:4px;margin:6px 0;}
+  .badges i{font-style:normal;font-size:6px;font-weight:700;border-radius:999px;padding:2px 6px;}
+  .kv{display:flex;justify-content:space-between;border-bottom:1px solid #EDEDF0;padding:4px 0;font-size:6.8px;color:#71717A;}
+  .kv b{color:#0B1220;}
+  .tl{display:flex;gap:6px;margin-bottom:5px;}
+  .tl i{width:6px;height:6px;border-radius:50%;background:#0E5FD8;margin-top:3px;flex:0 0 auto;}
+  .tl b{display:block;font-size:7px;} .tl span{display:block;font-size:6px;color:#71717A;}
+  .cap{font-size:9.5px;color:var(--slate);margin-top:7px;line-height:1.4;}
+
+  .browser{margin-top:16px;border:1px solid #E4E4E7;border-radius:14px;overflow:hidden;box-shadow:0 8px 22px rgba(11,18,32,.1);}
+  .chrome{display:flex;align-items:center;gap:5px;background:#F4F4F5;border-bottom:1px solid #E4E4E7;padding:6px 9px;}
+  .chrome i{width:7px;height:7px;border-radius:50%;background:#D4D4D8;}
+  .chrome .url{margin-left:7px;background:#fff;border:1px solid #E4E4E7;border-radius:6px;padding:2px 9px;font-size:7px;color:#71717A;}
+  .app{display:flex;background:#FAFAFA;}
+  .app aside{width:31mm;background:#fff;border-right:1px solid #E4E4E7;padding:9px 7px;}
+  .slogo{display:flex;align-items:center;gap:5px;font-size:8.5px;margin-bottom:9px;}
+  .nav{font-size:7.5px;color:#52525B;padding:4px 6px;border-radius:7px;margin-bottom:2px;}
+  .nav.on{background:#0B1220;color:#fff;font-weight:700;}
+  .planbox{margin-top:10px;border:1px solid #E4E4E7;border-radius:9px;padding:6px;font-size:6.5px;color:#71717A;}
+  .planbox b{display:block;font-size:8px;color:#0B1220;}
+  .meter{height:4px;border-radius:3px;background:#EDEDF0;margin-top:4px;overflow:hidden;}
+  .meter i{display:block;height:100%;width:100%;background:#F59E0B;}
+  .app main{flex:1;padding:9px;}
+  .tophead{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;margin-bottom:8px;}
+  .range{font-size:7px;font-weight:600;color:#52525B;border:1px solid #E4E4E7;background:#fff;border-radius:7px;padding:3px 7px;}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .tile{background:#fff;border:1px solid #E4E4E7;border-radius:10px;padding:7px;}
+  .tile span{font-size:6.5px;color:#71717A;} .tile b{display:block;font-size:13px;margin:2px 0;}
+  .tile em{font-style:normal;font-size:6px;color:#71717A;}
+  .tile em.up{color:#0A6B4A;} .tile em.down{color:#94590A;}
+  .charts{display:grid;grid-template-columns:1.35fr 1fr;gap:6px;margin-top:6px;}
+  .chart{background:#fff;border:1px solid #E4E4E7;border-radius:10px;padding:8px;}
+  .chart.wide{margin-top:6px;}
+  .chead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+  .chead b{font-size:8.5px;} .chead span{font-size:6.5px;color:#71717A;}
+  .donutwrap{display:flex;align-items:center;gap:9px;padding:2px 0 4px;}
+  .legend{flex:1;font-size:7px;}
+  .legend div{display:flex;align-items:center;gap:5px;padding:2.5px 0;border-bottom:1px solid #F1F1F3;color:#52525B;}
+  .legend i{width:8px;height:8px;border-radius:3px;flex:0 0 auto;}
+  .legend b{margin-left:auto;color:#0B1220;}
 </style></head><body>
 
 <!-- 1 COVER -->
@@ -134,7 +220,212 @@
   <div class="foot"><span>AssetSnap · Brand &amp; Marketing Kit</span><span>2</span></div>
 </section>
 
-<!-- 3 PRICING -->
+<!-- 3 MOBILE -->
+<section class="page">
+  <div class="logo"><div class="mark"></div><div class="wordmark">Asset<span>Snap</span></div></div>
+  <div style="margin-top:12mm"></div>
+  <div class="eyebrow">On the phone</div>
+  <h2 class="t">Three screens. That's the whole job.</h2>
+  <p class="lede">Installs from the browser as an app. Big targets, one column, readable in a store room
+     with one hand full.</p>
+
+  <div class="phones">
+    <div>
+      <div class="phone">
+        <div class="pbar"><span>9:41</span><span>▮▮▮ ▲ ▰</span></div>
+        <div class="pbody">
+          <div class="ptitle">Register <b>1,060</b></div>
+          <div class="search">Search name, code, serial…</div>
+          <div class="chips"><i class="on">All</i><i>In use</i><i>Repair</i><i>Store</i></div>
+          <div class="offline">2 captures queued — will sync</div>
+          <div class="item"><div class="thumb"></div><div><b>Dell Latitude 5440</b><span>AST-1058 · Head Office / Rm 204</span></div><em class="ok">In use</em></div>
+          <div class="item"><div class="thumb"></div><div><b>Epson EB-X51 Projector</b><span>AST-1057 · Training Hall</span></div><em class="warn">Repair</em></div>
+          <div class="item"><div class="thumb"></div><div><b>Bosch GSB 550 Drill</b><span>AST-1056 · Workshop</span></div><em class="ok">In use</em></div>
+          <div class="item"><div class="thumb"></div><div><b>Steel Cabinet 4-drawer</b><span>AST-1055 · Store Room</span></div><em class="mute">In store</em></div>
+          <div class="fab">Scan</div>
+        </div>
+        <div class="tabbar"><i class="on">Register</i><i>Capture</i><i>Billing</i><i>More</i></div>
+      </div>
+      <p class="cap">Register — search, filter, and anything still queued offline shown on top.</p>
+    </div>
+
+    <div>
+      <div class="phone">
+        <div class="pbar"><span>9:42</span><span>▮▮▮ ▲ ▰</span></div>
+        <div class="pbody scan">
+          <div class="viewfinder">
+            <span class="corner tl"></span><span class="corner tr"></span>
+            <span class="corner bl"></span><span class="corner br"></span>
+            <span class="laser"></span>
+            <div class="qrmini">
+              <svg viewBox="0 0 60 60"><g fill="#0B1220">
+                <rect x="4" y="4" width="14" height="14"/><rect x="8" y="8" width="6" height="6" fill="#fff"/>
+                <rect x="42" y="4" width="14" height="14"/><rect x="46" y="8" width="6" height="6" fill="#fff"/>
+                <rect x="4" y="42" width="14" height="14"/><rect x="8" y="46" width="6" height="6" fill="#fff"/>
+                <rect x="28" y="12" width="4" height="4"/><rect x="28" y="24" width="4" height="4"/><rect x="36" y="28" width="4" height="4"/>
+                <rect x="28" y="36" width="4" height="4"/><rect x="44" y="34" width="4" height="4"/><rect x="36" y="44" width="4" height="4"/>
+                <rect x="44" y="48" width="8" height="4"/><rect x="28" y="48" width="4" height="8"/><rect x="20" y="28" width="4" height="4"/>
+              </g></svg>
+            </div>
+          </div>
+          <div class="scanhint">Hold steady over the label</div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="ptitle" style="margin:0 0 6px"><b>AST-1059</b> recognised</div>
+            <div class="field">Name<span>Canon imageRUNNER 2630</span></div>
+            <div class="field">Location<span>Head Office / Rm 204 ▾</span></div>
+            <div class="field">Holder<span>N. Perera ▾</span></div>
+            <div class="photorow"><div class="ph">＋<br>Photo</div><div class="ph shot"></div></div>
+            <div class="primary">Save asset</div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">Capture — scan, confirm, save. Works with no signal; it syncs later.</p>
+    </div>
+
+    <div>
+      <div class="phone">
+        <div class="pbar"><span>9:44</span><span>▮▮▮ ▲ ▰</span></div>
+        <div class="pbody">
+          <div class="hero-img"></div>
+          <div class="ptitle" style="margin-top:8px">Dell Latitude 5440</div>
+          <div class="codeline">AST-1058 · SN 7HJ2K91</div>
+          <div class="badges"><i class="ok">In use</i><i class="mute">Good condition</i></div>
+          <div class="kv"><span>Location</span><b>Head Office / Rm 204</b></div>
+          <div class="kv"><span>Holder</span><b>N. Perera</b></div>
+          <div class="kv"><span>Purchased</span><b>12 Mar 2024 · 318,000</b></div>
+          <div class="kv"><span>Warranty</span><b>to 12 Mar 2027</b></div>
+          <div class="ptitle small">Movement history</div>
+          <div class="tl"><i></i><div><b>Moved to Rm 204</b><span>04 Sep · by S. Fernando</span></div></div>
+          <div class="tl"><i></i><div><b>Handed to N. Perera</b><span>04 Sep · by S. Fernando</span></div></div>
+          <div class="tl"><i></i><div><b>Created from scan</b><span>12 Mar · by Admin</span></div></div>
+          <div class="ghost">Move / hand over</div>
+        </div>
+        <div class="tabbar"><i class="on">Register</i><i>Capture</i><i>Billing</i><i>More</i></div>
+      </div>
+      <p class="cap">Asset detail — value, warranty and an audit trail that cannot be edited away.</p>
+    </div>
+  </div>
+  <div class="row c3" style="margin-top:14px">
+    <div class="card"><h3>No app store</h3><p>Open the link, tap "Add to home screen". Rolling it out to ten staff takes an afternoon, not an IT project.</p></div>
+    <div class="card"><h3>No signal, no problem</h3><p>Captures queue on the phone and sync the moment you have data. Nothing is lost in the basement.</p></div>
+    <div class="card"><h3>Right people, right rights</h3><p>Owner, admin, staff and viewer roles. A storekeeper can move an asset but cannot rewrite its value.</p></div>
+  </div>
+  <div class="foot"><span>AssetSnap · Brand &amp; Marketing Kit</span><span>3</span></div>
+</section>
+
+<!-- 4 DESKTOP + CHARTS -->
+<section class="page">
+  <div class="logo"><div class="mark"></div><div class="wordmark">Asset<span>Snap</span></div></div>
+  <div style="margin-top:12mm"></div>
+  <div class="eyebrow">On the desktop</div>
+  <h2 class="t">The numbers the owner actually asks for</h2>
+  <p class="lede">The same register on a laptop, with the counts, the mix and the month-by-month picture on
+     one screen — and every view exports to CSV, Excel or PDF.</p>
+
+  <div class="browser">
+    <div class="chrome"><i></i><i></i><i></i><div class="url">app.assetsnap.lk/dashboard</div></div>
+    <div class="app">
+      <aside>
+        <div class="slogo"><div class="mark" style="width:18px;height:18px;border-radius:5px"></div><b>AssetSnap</b></div>
+        <div class="nav on">Dashboard</div><div class="nav">Register</div><div class="nav">Locations</div>
+        <div class="nav">Movements</div><div class="nav">Reports</div><div class="nav">Audit log</div>
+        <div class="nav">Billing</div>
+        <div class="planbox"><b>Business</b><span>1,060 assets · no limit</span><div class="meter"><i style="background:#2563EB;width:62%"></i></div></div>
+      </aside>
+      <main>
+        <div class="tophead"><b>Dashboard</b><span class="range">Last 6 months ▾</span></div>
+        <div class="tiles">
+          <div class="tile"><span>Total assets</span><b>1,060</b><em class="up">+214 this month</em></div>
+          <div class="tile"><span>In use</span><b>612</b><em>58% of register</em></div>
+          <div class="tile"><span>Under repair</span><b>118</b><em class="down">11% · 6 overdue</em></div>
+          <div class="tile"><span>Book value</span><b>LKR 48.2M</b><em>across 6 locations</em></div>
+        </div>
+
+        <div class="charts">
+          <div class="chart">
+            <div class="chead"><b>Assets by location</b><span>count</span></div>
+            <svg viewBox="0 0 300 160" width="100%">
+              <g stroke="#E4E4E7" stroke-width="1">
+                <line x1="24" y1="140" x2="292" y2="140"/><line x1="24" y1="103" x2="292" y2="103" stroke-dasharray="3 3"/>
+                <line x1="24" y1="66" x2="292" y2="66" stroke-dasharray="3 3"/><line x1="24" y1="30" x2="292" y2="30" stroke-dasharray="3 3"/>
+              </g>
+              <g fill="#71717A" font-size="8" font-family="Helvetica"><text x="6" y="143">0</text><text x="2" y="106">150</text><text x="2" y="69">300</text><text x="2" y="33">450</text></g>
+              <g fill="#2563EB">
+                <rect x="34" y="30" width="30" height="110" rx="4"/><rect x="78" y="76.5" width="30" height="63.5" rx="4"/>
+                <rect x="122" y="93" width="30" height="47" rx="4"/><rect x="166" y="105" width="30" height="35" rx="4"/>
+                <rect x="210" y="114.9" width="30" height="25.1" rx="4"/><rect x="254" y="123.7" width="30" height="16.3" rx="4"/>
+              </g>
+              <g fill="#0B1220" font-size="8.5" font-weight="bold" text-anchor="middle" font-family="Helvetica">
+                <text x="49" y="26">412</text><text x="93" y="72">238</text><text x="137" y="89">176</text>
+                <text x="181" y="101">131</text><text x="225" y="111">94</text><text x="269" y="120">61</text></g>
+              <g fill="#71717A" font-size="7.5" text-anchor="middle" font-family="Helvetica">
+                <text x="49" y="152">Head Off.</text><text x="93" y="152">Kandy</text><text x="137" y="152">Store</text>
+                <text x="181" y="152">Workshop</text><text x="225" y="152">IT Room</text><text x="269" y="152">Training</text></g>
+            </svg>
+          </div>
+
+          <div class="chart">
+            <div class="chead"><b>Status mix</b><span>1,060 assets</span></div>
+            <div class="donutwrap">
+              <svg viewBox="0 0 120 120" width="104" height="104">
+                <g transform="rotate(-90 60 60)" fill="none" stroke-width="17">
+                  <circle cx="60" cy="60" r="42" stroke="#2563EB" stroke-dasharray="151.1 112.8" stroke-dashoffset="0"/>
+                  <circle cx="60" cy="60" r="42" stroke="#0D9488" stroke-dasharray="64 199.9" stroke-dashoffset="-153.1"/>
+                  <circle cx="60" cy="60" r="42" stroke="#F59E0B" stroke-dasharray="27 236.9" stroke-dashoffset="-219.1"/>
+                  <circle cx="60" cy="60" r="42" stroke="#7C3AED" stroke-dasharray="13.8 250.1" stroke-dashoffset="-248.1"/>
+                </g>
+                <text x="60" y="57" text-anchor="middle" font-size="17" font-weight="bold" fill="#0B1220" font-family="Helvetica">58%</text>
+                <text x="60" y="70" text-anchor="middle" font-size="8" fill="#71717A" font-family="Helvetica">in use</text>
+              </svg>
+              <div class="legend">
+                <div><i style="background:#2563EB"></i>In use<b>612</b></div>
+                <div><i style="background:#0D9488"></i>In store<b>268</b></div>
+                <div><i style="background:#F59E0B"></i>Repair<b>118</b></div>
+                <div><i style="background:#7C3AED"></i>Written off<b>62</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart wide">
+          <div class="chead"><b>Assets captured per month</b><span>since going live in April</span></div>
+          <svg viewBox="0 0 620 150" width="100%">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2563EB" stop-opacity=".22"/><stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+            </linearGradient></defs>
+            <g stroke="#E4E4E7" stroke-width="1">
+              <line x1="30" y1="128" x2="606" y2="128"/>
+              <line x1="30" y1="92" x2="606" y2="92" stroke-dasharray="3 3"/>
+              <line x1="30" y1="56" x2="606" y2="56" stroke-dasharray="3 3"/>
+              <line x1="30" y1="20" x2="606" y2="20" stroke-dasharray="3 3"/>
+            </g>
+            <g fill="#71717A" font-size="8" font-family="Helvetica"><text x="8" y="131">0</text><text x="6" y="95">80</text><text x="2" y="59">160</text><text x="2" y="23">240</text></g>
+            <path d="M60,110.6 L168,99.7 L276,89.5 L384,68.1 L492,47.3 L600,30 L600,128 L60,128 Z" fill="url(#g)"/>
+            <polyline points="60,110.6 168,99.7 276,89.5 384,68.1 492,47.3 600,30" fill="none" stroke="#2563EB" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <g fill="#2563EB" stroke="#fff" stroke-width="2">
+              <circle cx="60" cy="110.6" r="4"/><circle cx="168" cy="99.7" r="4"/><circle cx="276" cy="89.5" r="4"/>
+              <circle cx="384" cy="68.1" r="4"/><circle cx="492" cy="47.3" r="4"/><circle cx="600" cy="30" r="5"/></g>
+            <g fill="#0B1220" font-size="9" font-weight="bold" text-anchor="middle" font-family="Helvetica">
+              <text x="60" y="102">38</text><text x="600" y="22">214</text></g>
+            <g fill="#71717A" font-size="8" text-anchor="middle" font-family="Helvetica">
+              <text x="60" y="142">Apr</text><text x="168" y="142">May</text><text x="276" y="142">Jun</text>
+              <text x="384" y="142">Jul</text><text x="492" y="142">Aug</text><text x="600" y="142">Sep</text></g>
+          </svg>
+        </div>
+      </main>
+    </div>
+  </div>
+  <p class="note">Figures shown are an illustration of the dashboard, not a customer's real data.</p>
+  <div class="row c3" style="margin-top:12px">
+    <div class="card"><h3>Reports that leave the app</h3><p>Register, valuation, movement and warranty-expiry reports as PDF or Excel — the file the accountant and the auditor both ask for.</p></div>
+    <div class="card"><h3>Label sheets on A4</h3><p>Print QR codes for new assets straight from the browser, on plain sticker sheets from any stationer.</p></div>
+    <div class="card"><h3>Two branches, one register</h3><p>Nested locations and per-branch filters, so Kandy and Colombo stop keeping two versions of the truth.</p></div>
+  </div>
+  <div class="foot"><span>AssetSnap · Brand &amp; Marketing Kit</span><span>4</span></div>
+</section>
+
+<!-- 5 PRICING -->
 <section class="page">
   <div class="logo"><div class="mark"></div><div class="wordmark">Asset<span>Snap</span></div></div>
   <div style="margin-top:14mm"></div>
@@ -169,10 +460,10 @@
        If it does not save you the afternoon you usually lose to the spreadsheet, walk away — nothing to cancel.</p>
     <div class="btns"><div class="btn">Start the free week → assetsnap.lk</div><div class="btn alt">WhatsApp us: +94 7X XXX XXXX</div></div>
   </div>
-  <div class="foot"><span>AssetSnap · Brand &amp; Marketing Kit</span><span>3</span></div>
+  <div class="foot"><span>AssetSnap · Brand &amp; Marketing Kit</span><span>5</span></div>
 </section>
 
-<!-- 4 BRAND -->
+<!-- 6 BRAND -->
 <section class="page">
   <div class="logo"><div class="mark"></div><div class="wordmark">Asset<span>Snap</span></div></div>
   <div style="margin-top:14mm"></div>
@@ -224,6 +515,6 @@
     <p style="font-size:17px;color:#fff;margin-top:8px"><b>Anything, anywhere — secured in one tap.</b></p>
     <p>Short forms: "Scan it. Know it." for social; "Your asset register, in your pocket." for print.</p>
   </div>
-  <div class="foot"><span>AssetSnap · Brand &amp; Marketing Kit · v1</span><span>4</span></div>
+  <div class="foot"><span>AssetSnap · Brand &amp; Marketing Kit · v1</span><span>6</span></div>
 </section>
 </body></html>
