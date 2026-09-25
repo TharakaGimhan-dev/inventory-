@@ -23,9 +23,33 @@ export type TenantStore = {
 
 const storage = new AsyncLocalStorage<TenantStore>();
 
-/** Runs `fn` with the tenant bound to it and to everything it awaits. */
+/**
+ * Runs `fn` with the tenant bound to it and to everything it awaits.
+ *
+ * Used by jobs, seeds and tests, where the work really is one function call.
+ * HTTP requests use enterTenant() instead - see why there.
+ */
 export function runWithTenant<T>(store: TenantStore, fn: () => T): T {
   return storage.run(store, fn);
+}
+
+/**
+ * Binds the tenant to the rest of the current async context.
+ *
+ * The HTTP path cannot use runWithTenant(). An interceptor returns an rxjs
+ * observable, and the handler does not run when that observable is built - it
+ * runs when the framework subscribes, which happens after runWithTenant() has
+ * already returned. The context is then gone, and any interceptor that awaits
+ * something before calling next.handle() (the idempotency check, for one) makes
+ * that gap visible as "no tenant in context" on a perfectly ordinary request.
+ *
+ * enterWith binds the store to the async context itself, so it survives every
+ * await and every observable downstream. Each HTTP request runs in its own
+ * async context, so one request's store is never visible to another - the
+ * concurrency test over HTTP is what holds that claim honest.
+ */
+export function enterTenant(store: TenantStore): void {
+  storage.enterWith(store);
 }
 
 /**

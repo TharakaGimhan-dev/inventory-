@@ -11,7 +11,7 @@ import {
 } from 'sequelize-typescript';
 import { TenantScopedModel } from '../../src/common/models/tenant-scoped.model';
 import {
-  runWithTenant, runWithoutTenantScope,
+  enterTenant, runWithTenant, runWithoutTenantScope,
 } from '../../src/common/context/tenant.context';
 import {
   CrossTenantAccessError,
@@ -215,6 +215,56 @@ describe('spec 3.2 - tenant isolation', () => {
   it('runWithoutTenantScope is the only way across, and it works', async () => {
     const all = await runWithoutTenantScope(() => Widget.findAll());
     expect(all).toHaveLength(3);
+  });
+
+  it('enterTenant survives an await, the way an HTTP request does', async () => {
+    // The HTTP path uses enterTenant, not runWithTenant: the handler runs when
+    // the framework subscribes to the interceptor's observable, long after a
+    // run() callback has returned. This is the regression test for that -
+    // an interceptor that awaits anything before the handler used to lose the
+    // tenant and fail an ordinary capture with "no tenant in context".
+    const rows = await new Promise<any[]>((resolve, reject) => {
+      // A fresh async context, standing in for one request.
+      setImmediate(async () => {
+        try {
+          enterTenant({ tenantId: TENANT_A, userId: USER_A });
+          await new Promise((r) => setTimeout(r, 5));
+          resolve(await Widget.findAll());
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+
+    expect(rows).toHaveLength(2);
+    expect(rows.every((w) => w.tenantId === TENANT_A)).toBe(true);
+  });
+
+  it('two enterTenant contexts do not bleed into each other', async () => {
+    // enterWith binds to the async context rather than a callback, so this is
+    // the claim that matters: two concurrent requests keep separate stores.
+    const run = (tenantId: string, userId: string, delay: number) =>
+      new Promise<any[]>((resolve, reject) => {
+        setImmediate(async () => {
+          try {
+            enterTenant({ tenantId, userId });
+            await new Promise((r) => setTimeout(r, delay));
+            resolve(await Widget.findAll());
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+
+    const [a, b] = await Promise.all([
+      run(TENANT_A, USER_A, 15),
+      run(TENANT_B, USER_B, 1),
+    ]);
+
+    expect(a.every((w) => w.tenantId === TENANT_A)).toBe(true);
+    expect(b.every((w) => w.tenantId === TENANT_B)).toBe(true);
+    expect(a).toHaveLength(2);
+    expect(b).toHaveLength(1);
   });
 
   it('concurrent requests from two tenants do not bleed into each other', async () => {

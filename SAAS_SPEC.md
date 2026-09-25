@@ -364,6 +364,16 @@ POST   /admin/impersonate/:tenantId   superadmin, audited
 
 ## 8. Web app
 
+### 8.0 One origin, not two
+
+The browser calls `/api/v1/…` on the web app's own host and Next rewrites it to the API
+service. The API's tokens are httpOnly cookies, and on Railway the two services have
+different hostnames, so every direct call would be cross-site — where a `SameSite=Lax`
+cookie is not sent. The alternatives are worse: `SameSite=None` widens CSRF exposure, and
+moving tokens to `localStorage` puts them where injected script can read them.
+
+`API_URL` is therefore server-side only and must never gain a `NEXT_PUBLIC_` prefix.
+
 ### 8.1 What carries over from Phase 1
 
 The existing Next.js shell ports nearly whole: `app/(auth)/login`, the auth-guarded
@@ -382,8 +392,11 @@ desktop register with a data table, dashboard, settings + members, and billing.
 ### 8.3 Offline capture
 
 Firestore's IndexedDB persistence is replaced by an explicit outbox:
-a capture writes to IndexedDB and enqueues a mutation; a background sync flushes the queue
+a capture writes to IndexedDB and enqueues a mutation; a flush on reconnect sends the queue
 to the API with a client-generated idempotency key, so a double-flush cannot create two assets.
+The API stores the response against that key in Redis for 24 hours and returns it on a repeat,
+which is what makes the replay safe — without it a retry would create a second asset that has
+permanently consumed a second code.
 Asset codes are **assigned by the server**, so an offline capture shows "code pending" until
 it syncs — codes must stay gapless and unreusable (§5.4), which a client cannot guarantee.
 
@@ -420,7 +433,7 @@ run on deploy via a Railway release command.
 | **0 — Foundation** | Nest skeleton, Postgres + Redis wired, migrations, health check, Swagger, CI, Railway deploy. | `/api/v1/health` green on Railway. **Done.** |
 | **1 — Tenancy & auth** | tenants, users, memberships, JWT + refresh, roles guard, tenant scope hook. | The §3.2 isolation suite passes. **Done.** |
 | **2 — Core register** | locations, categories, assets, code counter, movements, audit entries. | Two tenants each hold `TS-0001` and cannot see each other's. **Done.** |
-| **3 — Web port** | Existing shell on the new API, capture form, register list, offline outbox. | A phone captures an asset offline and it syncs. |
+| **3 — Web port** | Existing shell on the new API, capture form, register list, offline outbox. | A phone captures an asset offline and it syncs. **Done.** |
 | **4 — Plans & quotas** | plans, subscriptions, usage counters, QuotaGuard, upgrade prompts. | Free tenant is blocked at asset 101 with a 402 naming the limit. |
 | **5 — Billing** | PayHere, webhooks, invoices, dunning, manual invoicing. | A real card moves a tenant Free → Starter. |
 | **6 — Paid features** | Reports, label sheets, custom fields, bulk import, API keys. | Starter/Business differ in the product, not just the price page. |

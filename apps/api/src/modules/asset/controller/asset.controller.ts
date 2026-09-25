@@ -1,13 +1,14 @@
 // asset.controller.ts is the register's HTTP surface.
 import {
   Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe,
-  Patch, Post, Query, Req,
+  Patch, Post, Query, Req, UseInterceptors,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { TenantRole } from '../../../common/constants/roles';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { IdempotencyInterceptor } from '../../../common/middleware/idempotency.interceptor';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { AuthenticatedUser } from '../../../common/types/authenticated-user';
 import {
@@ -44,6 +45,10 @@ export class AssetController {
 
   @Post()
   @Roles(TenantRole.ENTRY)
+  // Capture is the one route the offline outbox replays, so a repeat carrying
+  // the same Idempotency-Key returns the original asset instead of making a
+  // second one and burning a second code.
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Capture an asset - the code is issued by the server' })
   create(
     @Body(new ZodValidationPipe(createAssetSchema)) body: CreateAssetInput,

@@ -4,13 +4,14 @@ Multi-tenant office asset & inventory register, sold as a subscription.
 
 **`SAAS_SPEC.md` is the single source of truth — read it before changing anything.**
 
-**Current state: Phase 2 (Core register) complete.** Tenancy, auth, and the asset
-register — capture, search, movements, locations, categories and an append-only audit
-trail — are live and tested. The web app is Phase 3; plans and billing are Phases 4–5.
+**Current state: Phase 3 (Web app) complete.** A working product: sign in on a phone,
+capture assets with or without a signal, search the register. Plans, quotas and billing
+are Phases 4–5 — every tenant is on the free plan until then.
 
 ## Layout
 
 ```
+apps/web/            Next.js PWA — login, register, capture, offline outbox
 apps/api/            NestJS API
   src/configs/       database, redis, env validation
   src/modules/       auth, tenant, user, asset, audit, billing, health
@@ -51,9 +52,23 @@ npm run migrate
 npm run start:dev
 ```
 
+And the web app, in a second terminal:
+
+```bash
+cd apps/web
+npm install
+cp .env.local.example .env.local
+npm run dev
+```
+
+- Web — http://localhost:3000
 - API — http://localhost:3001/api/v1
 - Health — http://localhost:3001/api/v1/health
 - Swagger — http://localhost:3001/docs (development only; closed in production)
+
+The browser never calls the API directly. It calls `/api/v1/…` on the web app's own
+origin and Next proxies it, which keeps the httpOnly auth cookies same-site — see
+`apps/web/README.md` for why that matters on Railway.
 
 ## Tenant isolation
 
