@@ -48,6 +48,18 @@ Asset codes are issued by the server, so an offline capture shows **Pending**
 until it syncs. Codes must stay gapless and unreusable, and a phone cannot
 promise either.
 
+## Plan limits
+
+The API returns `402` with the metric, the limit and an upgrade URL when a tenant
+is full. `ApiError.planLimit` unpacks it, and the capture form shows an upgrade
+prompt rather than a red error — a full plan is not something the person can fix
+by retrying, so it gets a way forward instead of a failure message.
+
+Usage figures come from `/billing/subscription` **pre-computed**. The app never
+does its own arithmetic on a limit, so it cannot disagree with what the server
+will enforce. Bars warn at 80% rather than only at the wall: discovering a limit
+by being refused mid-stocktake means already having lost your place.
+
 ## End-to-end test
 
 With the API and the web app both running, and a user that can sign in:
@@ -59,3 +71,13 @@ npm run test:e2e
 Drives a real browser through the auth guard, sign-in, an online capture, sticky
 fields, an offline capture into IndexedDB, the flush on reconnect, and sign-out —
 and asserts the offline capture arrives exactly once.
+
+```bash
+node tests/quota-e2e.mjs
+```
+
+Checks what a person on a full plan actually sees: usage bars, the current plan
+marked, and an upgrade prompt naming the limit instead of a raw error.
+
+Both exit non-zero on failure. `PLAYWRIGHT_CHROMIUM_PATH` points at an existing
+browser; `WEB_URL`, `E2E_EMAIL` and `E2E_PASSWORD` override the defaults.

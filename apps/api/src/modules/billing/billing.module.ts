@@ -1,12 +1,22 @@
-// billing.module.ts holds the plan catalogue. Subscriptions, invoices and the
-// PayHere provider arrive in Phase 5; the Plan model exists now because
-// registration assigns the free plan.
-import { Module } from '@nestjs/common';
+// billing.module.ts owns the plan catalogue, the metered usage and the quota
+// guard's dependencies.
+//
+// Global, because the quota guard runs on routes in other modules and the
+// services that write tenant data have to keep the counters in step.
+import { Global, Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { Tenant } from '../tenant/models/tenant.model';
+import { BillingController } from './controller/billing.controller';
 import { Plan } from './models/plan.model';
+import { UsageCounter } from './models/usage-counter.model';
+import { PlanService } from './service/plan.service';
+import { UsageService } from './service/usage.service';
 
+@Global()
 @Module({
-  imports: [SequelizeModule.forFeature([Plan])],
-  exports: [SequelizeModule],
+  imports: [SequelizeModule.forFeature([Plan, UsageCounter, Tenant])],
+  controllers: [BillingController],
+  providers: [PlanService, UsageService],
+  exports: [PlanService, UsageService, SequelizeModule],
 })
 export class BillingModule {}

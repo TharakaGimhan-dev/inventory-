@@ -7,7 +7,12 @@ import { InjectModel } from '@nestjs/sequelize';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { NotFoundException } from '@nestjs/common';
 import { TenantRole } from '../../../common/constants/roles';
+import { Quota } from '../../../common/decorators/quota.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { UsageMetric } from '../../billing/models/usage-counter.model';
+import { UsageService } from '../../billing/service/usage.service';
+import { InjectConnection } from '@nestjs/sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { Category } from '../models/category.model';
 import { Location } from '../models/location.model';
@@ -20,7 +25,11 @@ import {
 @ApiTags('locations')
 @Controller('locations')
 export class LocationController {
-  constructor(@InjectModel(Location) private readonly locations: typeof Location) {}
+  constructor(
+    @InjectModel(Location) private readonly locations: typeof Location,
+    @InjectConnection() private readonly sequelize: Sequelize,
+    private readonly usage: UsageService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'All locations' })
@@ -30,11 +39,18 @@ export class LocationController {
 
   @Post()
   @Roles(TenantRole.ADMIN)
+  @Quota(UsageMetric.LOCATIONS)
   @ApiOperation({ summary: 'Add a location' })
   create(
     @Body(new ZodValidationPipe(createLocationSchema)) body: CreateLocationInput,
   ) {
-    return this.locations.create(body as any);
+    // The row and its counter share one transaction, so a failed insert cannot
+    // leave the tenant one location closer to its limit.
+    return this.sequelize.transaction(async (transaction) => {
+      const location = await this.locations.create(body as any, { transaction });
+      await this.usage.change(UsageMetric.LOCATIONS, 1, transaction);
+      return location;
+    });
   }
 
   @Patch(':id')
@@ -56,9 +72,16 @@ export class LocationController {
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     const location = await this.locations.findByPk(id);
     if (!location) throw new NotFoundException('Location not found');
+
     // Deactivated, not deleted: assets still point at it and their history has
-    // to keep naming where they were.
-    await location.update({ isActive: false });
+    // to keep naming where they were. An inactive location stops counting
+    // against the plan, so deactivating one frees the slot.
+    if (!location.isActive) return;
+
+    await this.sequelize.transaction(async (transaction) => {
+      await location.update({ isActive: false }, { transaction });
+      await this.usage.change(UsageMetric.LOCATIONS, -1, transaction);
+    });
   }
 }
 

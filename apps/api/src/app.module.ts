@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { QuotaGuard } from './common/guards/quota.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { TenantContextInterceptor } from './common/middleware/tenant-context.interceptor';
 import { TenantScopeHook } from './common/services/tenant-scope.hook';
@@ -43,7 +44,11 @@ import { TenantModule } from './modules/tenant/tenant.module';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // 2. Authorize - reads request.user, so it must run after step 1.
     { provide: APP_GUARD, useClass: RolesGuard },
-    // 3. Bind the tenant from the verified token, so every query below this
+    // 3. Plan limits. After authorization on purpose: a viewer hitting a create
+    //    route should hear 403, not an upgrade pitch for something they would
+    //    not be allowed to do anyway.
+    { provide: APP_GUARD, useClass: QuotaGuard },
+    // 4. Bind the tenant from the verified token, so every query below this
     //    point is scoped. It runs after both guards by construction:
     //    interceptors always run after guards in Nest's request pipeline.
     { provide: APP_INTERCEPTOR, useClass: TenantContextInterceptor },

@@ -43,6 +43,45 @@ export type Paged<T> = {
 export type Location = { id: string; name: string; isActive: boolean };
 export type Category = { id: string; name: string };
 
+export type UsageMetricName = 'assets' | 'members' | 'locations';
+
+export type Subscription = {
+  tenant: { id: string; name: string; status: string; trialEndsAt: string | null };
+  plan: {
+    code: string;
+    name: string;
+    priceMonthly: string;
+    currency: string;
+    features: Record<string, boolean>;
+  } | null;
+  limits: Record<string, number>;
+  usage: Record<string, number>;
+  /** Pre-computed by the API so every client draws the same bar. */
+  metrics: {
+    metric: UsageMetricName;
+    used: number;
+    limit: number;
+    unlimited: boolean;
+    remaining: number | null;
+  }[];
+};
+
+export type Plan = {
+  id: string;
+  code: string;
+  name: string;
+  priceMonthly: string;
+  currency: string;
+  limits: Record<string, number>;
+  features: Record<string, boolean>;
+};
+
+export const METRIC_LABELS: Record<UsageMetricName, string> = {
+  assets: 'Assets',
+  members: 'Team members',
+  locations: 'Locations',
+};
+
 export const STATUS_LABELS: Record<AssetStatus, string> = {
   in_use: 'In use',
   in_store: 'In store',

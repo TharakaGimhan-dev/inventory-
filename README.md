@@ -1,37 +1,60 @@
 # Inventory SaaS
 
-Multi-tenant office asset & inventory register, sold as a subscription.
+Multi-tenant office asset register, sold as a subscription. Built for Sri Lankan
+SMEs; successor to the single-organisation **TS Asset Register**.
 
-**`SAAS_SPEC.md` is the single source of truth — read it before changing anything.**
+**[`SAAS_SPEC.md`](SAAS_SPEC.md) is the single source of truth — read it before changing anything.**
 
-**Current state: Phase 3 (Web app) complete.** A working product: sign in on a phone,
-capture assets with or without a signal, search the register. Plans, quotas and billing
-are Phases 4–5 — every tenant is on the free plan until then.
+**Current state: Phase 4 complete.** A working product with plan limits enforced.
+Payments are Phase 5; until then every tenant is on the free plan and changing a
+plan is a database row.
+
+| | |
+|---|---|
+| Web | Next.js 16 PWA — mobile capture, register, offline outbox |
+| API | NestJS 11 — Sequelize on PostgreSQL, Redis for sessions and idempotency |
+| Host | Railway — `web`, `api`, `postgres`, `redis` |
+| Tests | 40 API tests + 23 browser checks, all against real Postgres and Redis |
+
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [`SAAS_SPEC.md`](SAAS_SPEC.md) | Architecture, tenancy, data model, plans, phase plan. The source of truth. |
+| [`apps/api/README.md`](apps/api/README.md) | The API: modules, isolation, auth, quotas, migrations. |
+| [`apps/web/README.md`](apps/web/README.md) | The web app: the proxy, offline capture, upgrade prompts. |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Railway, step by step, and what breaks if you skip a step. |
+| [`docs/TESTING.md`](docs/TESTING.md) | What is tested, how to run it, and what each suite protects. |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Conventions, and the rules that must not be broken. |
+| [`CHANGELOG.md`](CHANGELOG.md) | What each phase delivered. |
 
 ## Layout
 
 ```
-apps/web/            Next.js PWA — login, register, capture, offline outbox
-apps/api/            NestJS API
-  src/configs/       database, redis, env validation
-  src/modules/       auth, tenant, user, asset, audit, billing, health
-  src/common/        guards, pipes, decorators shared across modules
-  migrations/        schema changes, run before every deploy
-  config/            sequelize-cli config (the CLI cannot read Nest's)
-  tests/isolation/   the tenant-isolation suite - spec §3.2
-docker-compose.yml   local Postgres + Redis
-SAAS_SPEC.md         architecture, data model, plans, phases
+apps/
+  api/               NestJS API
+    src/configs/     database, redis, env validation
+    src/common/      guards, pipes, decorators, tenant context and query hook
+    src/modules/     auth, tenant, user, asset, audit, billing, health
+    migrations/      schema changes, run before every deploy
+    tests/           isolation, asset register, quota
+  web/               Next.js PWA
+    app/(auth)/      login
+    app/(app)/       register, capture, billing, more
+    lib/             api client, auth, offline outbox
+    tests/           browser end-to-end checks
+docs/                deployment and testing guides
 ```
 
 ## Running locally
 
-Postgres and Redis first:
+Postgres and Redis:
 
 ```bash
 docker compose up -d
 ```
 
-Then the API:
+The API:
 
 ```bash
 cd apps/api
@@ -39,20 +62,19 @@ npm install
 cp .env.example .env
 ```
 
-Generate the two JWT secrets and paste them into `.env` — they must be different values:
+Generate the two JWT secrets and put them in `.env` — they must differ:
 
 ```bash
 openssl rand -base64 48
 ```
 
-Apply migrations, then start:
-
 ```bash
 npm run migrate
+npm run seed
 npm run start:dev
 ```
 
-And the web app, in a second terminal:
+The web app, in a second terminal:
 
 ```bash
 cd apps/web
@@ -61,149 +83,47 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-- Web — http://localhost:3000
-- API — http://localhost:3001/api/v1
-- Health — http://localhost:3001/api/v1/health
-- Swagger — http://localhost:3001/docs (development only; closed in production)
+| | |
+|---|---|
+| Web | http://localhost:3000 |
+| API | http://localhost:3001/api/v1 |
+| Health | http://localhost:3001/api/v1/health |
+| Swagger | http://localhost:3001/docs (development only) |
 
-The browser never calls the API directly. It calls `/api/v1/…` on the web app's own
-origin and Next proxies it, which keeps the httpOnly auth cookies same-site — see
-`apps/web/README.md` for why that matters on Railway.
-
-## Tenant isolation
-
-The one thing that must never fail. Three layers, described in spec §3.1:
-
-| Layer | Where | What it does |
-|---|---|---|
-| Schema | `migrations/` | `tenantId NOT NULL`, composite unique keys (`UNIQUE (tenantId, code)`, never `UNIQUE (code)`) |
-| Context | `common/context/tenant.context.ts` | `AsyncLocalStorage` holds the tenant from the **verified token** — never a header, query param or body field |
-| Query | `common/services/tenant-scope.hook.ts` | Sequelize hooks inject `tenantId` into every read and write, and throw when no tenant is in context |
-
-The third layer is what makes the guarantee hold: it does not depend on anyone
-remembering `where: { tenantId }`. A query naming another tenant is **rejected**, not
-quietly rewritten, and a query with no tenant at all raises rather than returning
-every customer's rows.
-
-`runWithoutTenantScope()` is the only way across, reserved for audited
-platform-admin work. Finding every bypass is one grep.
+There is no seeded login. Create the first account:
 
 ```bash
-npm run test:isolation
+curl -X POST http://localhost:3001/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.lk","password":"a-long-password","firstName":"Your","lastName":"Name","organisationName":"Your Company"}'
 ```
 
-Needs a running Postgres (`docker compose up -d`) — the suite tests that real
-Sequelize hooks fire, which a mock cannot prove.
+## The four things that must stay true
 
-## Auth
+Everything else is ordinary application code. These four are load-bearing, and
+each has tests that fail loudly if it stops holding.
 
-- Access token 15 min, refresh token 30 days, both httpOnly cookies (body too, for
-  mobile and API clients).
-- Redis is the source of truth for live sessions, so a signed but revoked token
-  stops working. Refresh rotates the session id, so a leaked refresh token cannot
-  be replayed after the real user has used it.
-- Every route requires a token unless marked `@Public()` — new routes are protected
-  by default.
-- Roles are ranked, so `@Roles(ADMIN)` admits `owner` without listing it.
-- Login compares against a dummy hash when the account does not exist, so response
-  timing cannot be used to enumerate customers.
+**One tenant can never see another's data.** Enforced in three layers so it does
+not depend on anyone remembering a `where` clause — schema, request context, and
+a Sequelize hook that injects `tenantId` into every query and throws when there
+is no tenant. See [`apps/api/README.md`](apps/api/README.md#tenant-isolation).
 
-## The register
+**Asset codes are gapless and never reused.** A code is printed on a label and
+stuck to equipment. Reissuing one makes the label point at two things.
 
-| Route | Minimum role | Note |
-|---|---|---|
-| `GET /assets` | viewer | Search by name, code or serial; filter by status, kind, location, category |
-| `POST /assets` | entry | The code is issued by the server — a client-sent `code` is ignored |
-| `PATCH /assets/:id` | entry | `code` can never be changed |
-| `POST /assets/:id/move` | entry | Records a location or custody change |
-| `DELETE /assets/:id` | admin | Soft delete — the code stays taken |
-| `GET /audit` | admin | Read-only. No write route exists at any role |
+**Audit entries cannot be changed or deleted.** Not by any role, through any code
+path. The controller has no write route and the model refuses `update` and
+`destroy`.
 
-**Asset codes** (`TS-0001`, `TS-0002`, …) are unique per tenant, gapless, and never
-reused. The counter is incremented by a single `INSERT … ON CONFLICT DO UPDATE …
-RETURNING` inside the same transaction as the asset insert, so Postgres serialises
-concurrent captures itself. A capture that fails rolls the increment back and leaves
-no hole; a deleted asset never releases its code, because that code is printed on a
-label stuck to real equipment.
+**Plan limits are enforced where they are counted, not where they are checked.**
+A guard that reads a counter and then acts cannot hold a limit when several
+requests arrive at once. The increment itself carries the condition.
 
-**`replacementValue`** is admin-and-owner only — it drives the insurance number, so an
-entry clerk fixing a serial number cannot move it.
+## Deploying
 
-**Audit entries** are append-only. The controller has no write route, and the model
-itself refuses `update` and `destroy`, so a tenant admin cannot erase the record of
-their own edit through any path.
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). Four Railway services; `postgres`
+and `redis` must not have public domains.
 
-```bash
-npm run test:isolation
-```
+## Licence
 
-## Health checks
-
-Two endpoints, deliberately separate:
-
-| Route | Checks | Use |
-|---|---|---|
-| `/api/v1/health` | Postgres + Redis | Railway's deploy gate. 503 if either is down. |
-| `/api/v1/health/live` | nothing | Liveness. Stays 200 while the process is alive. |
-
-A restart should be triggered by the process being wedged, not by Postgres having a
-bad minute — which is why liveness does not touch dependencies.
-
-## Migrations
-
-`synchronize` is **off**. It drops columns it does not recognise, which is fine in a
-scratch project and unacceptable with customer data. Every schema change is a migration.
-
-```bash
-npm run migration:create -- add-tenants-table
-npm run migrate
-npm run migrate:status
-npm run migrate:undo
-```
-
-Migrations run as Railway's pre-deploy command, so a migration that fails stops the
-deploy and the previous version keeps serving.
-
-## Deploying to Railway
-
-Four services in one project:
-
-```
-web (Next.js)  →  api (NestJS)  →  postgres
-                        ↓
-                      redis
-```
-
-`postgres` and `redis` must **not** have a public domain — they are reached over
-Railway's private network. `api` and `web` need one.
-
-For the `api` service:
-
-1. Root directory — `apps/api`
-2. `railway.json` supplies build, start, pre-deploy and the health check path.
-3. Variables — reference the service, never paste the value, so a rotated password
-   does not silently break the deploy:
-
-   ```
-   NODE_ENV=production
-   DATABASE_URL=${{Postgres.DATABASE_URL}}
-   REDIS_URL=${{Redis.REDIS_URL}}
-   JWT_ACCESS_SECRET=<openssl rand -base64 48>
-   JWT_REFRESH_SECRET=<a different one>
-   CORS_ORIGINS=https://<your web domain>
-   ```
-
-4. Settings → Networking → Generate Domain.
-
-The app binds `0.0.0.0` and reads Railway's `PORT`. Binding the default instead listens
-only inside the container, and the health check then fails every deploy.
-
-`IMAGEKIT_PRIVATE_KEY`, `PAYHERE_SECRET` and both JWT secrets are API-only and must never
-gain a `NEXT_PUBLIC_` prefix — that prefix ships the value to the browser.
-
-## Next
-
-**Phase 1 — Tenancy & auth:** tenants, users, memberships, JWT + refresh tokens, the
-roles guard, and the Sequelize tenant-scope hook. Done when the tenant-isolation suite
-in spec §3.2 passes — one tenant must not be able to read, write or even detect another's
-data, and that must hold without a developer remembering a `where` clause.
+Private and unlicensed. All rights reserved.

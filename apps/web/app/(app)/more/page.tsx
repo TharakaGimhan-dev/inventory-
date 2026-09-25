@@ -3,10 +3,12 @@
 // The third tab: who you are signed in as, and the way out.
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { canAdmin, useAuth } from '@/lib/auth';
 import { outbox } from '@/lib/outbox';
-import type { Location } from '@/lib/types';
+import { UsageBar } from '@/components/UsageBar';
+import type { Location, Subscription } from '@/lib/types';
 
 export default function MorePage() {
   const { me, logout, refresh } = useAuth();
@@ -14,11 +16,16 @@ export default function MorePage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [newLocation, setNewLocation] = useState('');
   const [queued, setQueued] = useState(0);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void api.get<Location[]>('/locations').then(setLocations).catch(() => undefined);
     void outbox.all().then((rows) => setQueued(rows.length));
+    void api
+      .get<Subscription>('/billing/subscription')
+      .then(setSubscription)
+      .catch(() => undefined);
   }, []);
 
   async function addLocation(event: React.FormEvent) {
@@ -61,6 +68,27 @@ export default function MorePage() {
           ) : null}
         </p>
       </div>
+
+      {subscription ? (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              marginBottom: 10,
+            }}
+          >
+            <h2 style={{ margin: 0 }}>
+              {subscription.plan?.name ?? 'No plan'}
+            </h2>
+            <Link href="/billing">Plans</Link>
+          </div>
+          {subscription.metrics.map((metric) => (
+            <UsageBar key={metric.metric} metric={metric} />
+          ))}
+        </div>
+      ) : null}
 
       {(me?.tenants.length ?? 0) > 1 ? (
         <div className="card" style={{ marginBottom: 16 }}>

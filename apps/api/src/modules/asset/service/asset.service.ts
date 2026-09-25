@@ -12,6 +12,10 @@ import { AuditAction } from '../../../common/constants/asset';
 import { TenantRole } from '../../../common/constants/roles';
 import { AuthenticatedUser } from '../../../common/types/authenticated-user';
 import { AuditService } from '../../audit/service/audit.service';
+import { PlanLimitExceededException } from '../../../common/exceptions/plan-limit.exception';
+import { UsageMetric } from '../../billing/models/usage-counter.model';
+import { PlanService } from '../../billing/service/plan.service';
+import { UsageService } from '../../billing/service/usage.service';
 import { Asset } from '../models/asset.model';
 import { AssetMovement } from '../models/asset-movement.model';
 import {
@@ -38,6 +42,8 @@ export class AssetService {
     @InjectConnection() private readonly sequelize: Sequelize,
     private readonly codes: AssetCodeService,
     private readonly audit: AuditService,
+    private readonly usage: UsageService,
+    private readonly plans: PlanService,
   ) {}
 
   async list(query: ListAssetsQuery) {
@@ -86,7 +92,32 @@ export class AssetService {
   ) {
     this.assertMayWriteAdminFields(input, user);
 
+    const limits = await this.plans.effectiveLimits(user.tenantId);
+
     return this.sequelize.transaction(async (transaction) => {
+      // The authoritative limit check, and it comes first: claiming the slot
+      // before issuing a code means a refused capture does not consume one.
+      // The quota guard has already rejected the obvious cases; this is what
+      // holds when several captures arrive at the boundary together.
+      if (!PlanService.isUnlimited(limits.assets)) {
+        const claimed = await this.usage.increaseWithinLimit(
+          UsageMetric.ASSETS,
+          1,
+          limits.assets,
+          transaction,
+        );
+
+        if (claimed === null) {
+          throw new PlanLimitExceededException(
+            UsageMetric.ASSETS,
+            limits.assets,
+            await this.usage.current(UsageMetric.ASSETS, user.tenantId),
+          );
+        }
+      } else {
+        await this.usage.change(UsageMetric.ASSETS, 1, transaction);
+      }
+
       // Inside the transaction, so a failed insert returns the code to the next
       // capture rather than leaving a gap in the sequence.
       const code = await this.codes.next(transaction);
@@ -225,6 +256,10 @@ export class AssetService {
       // Soft delete. A written-off laptop still has to appear in last year's
       // audit, and its code must stay taken so it is never reissued.
       await asset.destroy({ transaction });
+
+      // The code stays taken, but the slot is released: a customer who disposes
+      // of a laptop has room for its replacement without paying more.
+      await this.usage.change(UsageMetric.ASSETS, -1, transaction);
 
       await this.audit.record(
         {

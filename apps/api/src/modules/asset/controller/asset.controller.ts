@@ -7,7 +7,9 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { TenantRole } from '../../../common/constants/roles';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { Quota } from '../../../common/decorators/quota.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { UsageMetric } from '../../billing/models/usage-counter.model';
 import { IdempotencyInterceptor } from '../../../common/middleware/idempotency.interceptor';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { AuthenticatedUser } from '../../../common/types/authenticated-user';
@@ -45,6 +47,9 @@ export class AssetController {
 
   @Post()
   @Roles(TenantRole.ENTRY)
+  // Refused with 402 once the plan is full, naming the limit so the app can
+  // show a real upgrade prompt rather than a generic failure.
+  @Quota(UsageMetric.ASSETS)
   // Capture is the one route the offline outbox replays, so a repeat carrying
   // the same Idempotency-Key returns the original asset instead of making a
   // second one and burning a second code.

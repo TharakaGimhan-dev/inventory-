@@ -15,6 +15,18 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 
+  /**
+   * True when the tenant hit a plan limit rather than doing anything wrong.
+   * The body carries the metric, the limit and where to upgrade.
+   */
+  get planLimit(): { metric: string; limit: number; current: number } | null {
+    if (this.status !== 402) return null;
+    const b = this.body as { metric?: string; limit?: number; current?: number };
+    return b?.metric
+      ? { metric: b.metric, limit: b.limit ?? 0, current: b.current ?? 0 }
+      : null;
+  }
+
   /** True when the server rejected the input and named the fields. */
   get fieldErrors(): Record<string, string[]> | null {
     const b = this.body as { errors?: { fieldErrors?: Record<string, string[]> } };

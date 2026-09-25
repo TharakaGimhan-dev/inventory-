@@ -1,0 +1,147 @@
+# API
+
+NestJS + Sequelize on PostgreSQL, Redis for sessions and idempotency.
+
+Structure follows one shape per module: `models/` → `schemas/` → `service/` →
+`controller/`. A new feature adds a folder under `src/modules/`, not a new pattern.
+
+## Running
+
+Needs Postgres and Redis (`docker compose up -d` at the repo root).
+
+```bash
+npm install
+cp .env.example .env     # then generate the two JWT secrets
+npm run migrate
+npm run seed             # the plan catalogue
+npm run start:dev
+```
+
+Swagger is at `/docs` in development and closed in production — the schema of
+every endpoint is a map of the API for anyone probing it.
+
+## Modules
+
+| Module | Owns |
+|---|---|
+| `auth` | Register, login, refresh, logout, tenant switching |
+| `tenant` | `/me`, tenant settings, member list |
+| `asset` | The register: assets, movements, locations, categories, asset codes |
+| `audit` | The append-only trail |
+| `billing` | Plans, limits, metered usage |
+| `health` | The deploy gate |
+
+## Tenant isolation
+
+The thing that must never fail. Three layers, spec §3.1:
+
+| Layer | Where | Does |
+|---|---|---|
+| Schema | `migrations/` | `tenantId NOT NULL`; every unique key composite with it |
+| Context | `common/context/tenant.context.ts` | Holds the tenant from the **verified token** |
+| Query | `common/services/tenant-scope.hook.ts` | Injects `tenantId` into every read and write |
+
+The third layer is what makes the guarantee hold, because it does not depend on
+anyone remembering `where: { tenantId }`.
+
+Three details that are easy to get wrong, and were:
+
+- Hooks are registered **per model**, not on the connection. Sequelize's
+  connection-level `beforeFind` receives options with no `model` on them, so a
+  global hook cannot tell which table it is filtering.
+- A query naming a **different** tenant is rejected, not rewritten. Silently
+  correcting it would leave the query meaning something other than what it says,
+  and a real isolation bug would return plausible data instead of an error.
+- The request binds the tenant with `enterWith`, not `run`. A handler executes
+  when the framework subscribes to the interceptor's observable, long after a
+  `run()` callback has returned — any interceptor that awaits something first
+  would otherwise lose the tenant.
+
+`runWithoutTenantScope()` is the only way across, reserved for audited
+platform-admin work. Finding every bypass is one grep.
+
+## Auth
+
+- Access token 15 minutes, refresh token 30 days, both httpOnly cookies. Also
+  returned in the body, for mobile and API clients.
+- Redis is the source of truth for live sessions, so a signed but revoked token
+  stops working. Refresh rotates the session id, so a leaked refresh token
+  cannot be replayed after the real user has used it.
+- Every route requires a token unless marked `@Public()`. New routes are
+  protected by default.
+- Roles are ranked: `@Roles(ADMIN)` admits `owner` without listing it.
+- Login compares against a dummy hash for unknown accounts, so response timing
+  cannot be used to enumerate customers.
+
+## Plan limits
+
+Limits are **data**. `plans.limits` is JSONB, and `tenants.settings.limitOverrides`
+layers on top — which is how a founding-customer discount exists without an `if`
+in the guard. `-1` means unlimited.
+
+Enforcement happens in two places, and only one of them is authoritative:
+
+- `QuotaGuard` rejects a request that is *already* over its limit, before any
+  work is done. It is the friendly check.
+- `UsageService.increaseWithinLimit` carries the condition **on the increment**,
+  inside the transaction. This is what actually holds.
+
+The guard alone is not enough, and this was a real bug: with one slot left,
+eight concurrent captures all read the same room before any of them wrote, and
+all eight succeeded — the tenant ended up at ten assets on a limit of three.
+Postgres settles it now; exactly one increment wins.
+
+Counters are maintained rather than recounted, because counting a million assets
+to decide whether a tenant may add one more gets slower exactly as the customer
+gets more valuable. `UsageService.reconcile` recounts from the source tables to
+correct drift.
+
+## Asset codes
+
+`TS-0001`, `TS-0002`, … Unique per tenant, gapless, never reused.
+
+One statement issues them — `INSERT … ON CONFLICT DO UPDATE … RETURNING` inside
+the same transaction as the asset insert, so Postgres serialises concurrent
+captures itself. A read-then-write has a window where two captures read the same
+number.
+
+A capture that fails rolls the increment back and leaves no hole. A deleted asset
+never releases its code, because that code is already on a label.
+
+## Migrations
+
+`synchronize` is **off**. It drops columns it does not recognise — fine in a
+scratch project, unacceptable with customer data.
+
+```bash
+npm run migration:create -- add-something
+npm run migrate
+npm run migrate:status
+npm run migrate:undo
+```
+
+They run as Railway's pre-deploy command, so a migration that fails stops the
+deploy and the previous version keeps serving.
+
+A migration that adds a counter or a constraint must **backfill** — see
+`20260925020000-phase4-usage-counters.js`. Without it, every existing tenant
+starts at zero usage and can exceed its plan by exactly what it already holds.
+
+## Health
+
+| Route | Checks | For |
+|---|---|---|
+| `/api/v1/health` | Postgres + Redis | Railway's deploy gate. 503 if either is down. |
+| `/api/v1/health/live` | nothing | Liveness. 200 while the process is alive. |
+
+Separate on purpose: a restart should be triggered by the process being wedged,
+not by Postgres having a bad minute. Both are `@Public()` — a health check that
+needs a token fails every deploy.
+
+## Tests
+
+See [`docs/TESTING.md`](../../docs/TESTING.md).
+
+```bash
+npm run test:isolation
+```

@@ -272,13 +272,28 @@ per-tenant override in `tenants.settings.limitOverrides` for the founding-custom
 
 ### 6.3 Enforcement
 
-A `QuotaGuard` + `@Quota('assets')` decorator, running after `RolesGuard` and before the
-controller. It reads `usage_counters` for the tenant, compares against the effective limit,
-and throws `402 Payment Required` with a body naming the metric, the limit, and the upgrade
-URL — so the UI can show a real upgrade prompt rather than a generic error.
+Two places, and only one of them is authoritative.
+
+`QuotaGuard` + `@Quota('assets')` runs after `RolesGuard` and before the controller. It
+reads `usage_counters`, compares against the effective limit, and throws `402 Payment
+Required` naming the metric, the limit and the upgrade URL — so the UI shows a real
+upgrade prompt rather than a generic error. This is the friendly check: it refuses the
+obvious case before any work is done.
+
+**A guard cannot hold a limit under concurrency**, and this was a real bug. It reads the
+counter and then acts; every request that read before any of them wrote sees the same
+room. With one slot left, eight simultaneous captures all passed and the tenant reached
+ten assets on a limit of three.
+
+So enforcement lives on the increment: `UsageService.increaseWithinLimit` runs
+`INSERT … ON CONFLICT DO UPDATE … WHERE value + delta <= limit RETURNING value`, inside
+the write's transaction. Postgres evaluates the condition with the row locked, so exactly
+one of those eight wins and the rest get no row back and a `402`. The slot is claimed
+before the asset code is issued, so a refused capture consumes no code.
 
 Usage counters are updated in the same transaction as the write that changes them, and
-reconciled nightly by a job that recounts from the source tables.
+reconciled by a job that recounts from the source tables — a counter is an optimisation,
+and optimisations drift.
 
 ### 6.4 Downgrade and non-payment
 
@@ -434,7 +449,7 @@ run on deploy via a Railway release command.
 | **1 — Tenancy & auth** | tenants, users, memberships, JWT + refresh, roles guard, tenant scope hook. | The §3.2 isolation suite passes. **Done.** |
 | **2 — Core register** | locations, categories, assets, code counter, movements, audit entries. | Two tenants each hold `TS-0001` and cannot see each other's. **Done.** |
 | **3 — Web port** | Existing shell on the new API, capture form, register list, offline outbox. | A phone captures an asset offline and it syncs. **Done.** |
-| **4 — Plans & quotas** | plans, subscriptions, usage counters, QuotaGuard, upgrade prompts. | Free tenant is blocked at asset 101 with a 402 naming the limit. |
+| **4 — Plans & quotas** | plans, usage counters, QuotaGuard, upgrade prompts. | Free tenant is blocked at asset 101 with a 402 naming the limit. **Done.** |
 | **5 — Billing** | PayHere, webhooks, invoices, dunning, manual invoicing. | A real card moves a tenant Free → Starter. |
 | **6 — Paid features** | Reports, label sheets, custom fields, bulk import, API keys. | Starter/Business differ in the product, not just the price page. |
 | **7 — Launch** | Marketing site, pricing page, onboarding, docs, support inbox. | The two customers are on Starter. |

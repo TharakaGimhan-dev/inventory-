@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api } from '@/lib/api';
 import { canAdmin, canWrite, useAuth } from '@/lib/auth';
 import { flushOutbox, outbox } from '@/lib/outbox';
+import Link from 'next/link';
 import type { Asset, Category, Location } from '@/lib/types';
 
 // Kept between captures. Someone logging a room of chairs sets the location
@@ -36,6 +37,10 @@ export default function CapturePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [limitHit, setLimitHit] = useState<{
+    metric: string;
+    limit: number;
+  } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [lastCreated, setLastCreated] = useState<Asset | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
@@ -137,6 +142,7 @@ export default function CapturePage() {
     event.preventDefault();
     setBusy(true);
     setError(null);
+    setLimitHit(null);
     setLastCreated(null);
 
     const payload = payloadFrom();
@@ -158,6 +164,10 @@ export default function CapturePage() {
         await countQueued();
         setToast('No connection — saved and will sync');
         setForm({ ...EMPTY, kind: form.kind });
+      } else if (e instanceof ApiError && e.planLimit) {
+        // A full plan is not a failure the person can fix by retrying, so it
+        // gets its own prompt with a way forward instead of a red error.
+        setLimitHit({ metric: e.planLimit.metric, limit: e.planLimit.limit });
       } else {
         setError(e instanceof Error ? e.message : 'Could not save this item');
       }
@@ -200,6 +210,16 @@ export default function CapturePage() {
       {pendingCount > 0 ? (
         <div className="banner">
           {pendingCount} capture{pendingCount === 1 ? '' : 's'} waiting to sync.
+        </div>
+      ) : null}
+
+      {limitHit ? (
+        <div className="limit-prompt">
+          <strong>
+            Your plan is full — {limitHit.limit} {limitHit.metric}.
+          </strong>
+          This item was not saved. <Link href="/billing">See plans</Link> to add
+          more, or remove something you no longer own.
         </div>
       ) : null}
 
