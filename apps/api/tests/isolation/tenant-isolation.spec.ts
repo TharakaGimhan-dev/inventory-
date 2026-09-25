@@ -54,6 +54,9 @@ const TENANT_B = '22222222-2222-4222-8222-222222222222';
 const USER_A = '33333333-3333-4333-8333-333333333333';
 const USER_B = '44444444-4444-4444-8444-444444444444';
 
+// Run with --runInBand (npm run test:isolation does). Each suite rebuilds the
+// schema with sync({ force: true }), so two of them sharing a database
+// concurrently drop each other's tables mid-test.
 let sequelize: Sequelize;
 
 const asTenantA = <T>(fn: () => T) =>

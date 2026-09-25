@@ -96,6 +96,38 @@ to decide whether a tenant may add one more gets slower exactly as the customer
 gets more valuable. `UsageService.reconcile` recounts from the source tables to
 correct drift.
 
+## Billing
+
+Everything payment-related sits behind `PaymentProvider`. Nothing outside
+`modules/billing/providers/` knows which gateway is in use — Sri Lanka forces
+this, since Stripe does not onboard LK-registered businesses directly and a
+foreign entity or a second local gateway each mean another class, not a rewrite.
+
+Three rules hold the money side together:
+
+**Only a verified webhook activates a subscription.** `POST /billing/subscribe`
+creates a *pending* row and returns checkout fields; the tenant's plan does not
+move. A return URL is a navigation, not a payment, and is forged by typing it.
+
+**Callbacks are processed exactly once.** The unique index on
+`(provider, eventId)` in `webhook_events` is the guarantee — the insert failing
+on a retry *is* the signal to stop. PayHere sends no delivery id, so one is
+derived from the fields identifying the payment: a genuine retry produces the
+same string, a later renewal does not.
+
+**A rejected signature changes nothing and still answers 200.** A provider that
+gets an error retries, and retrying a forged callback forever is only noise.
+
+Dunning is in `AccessService`. A failed renewal keeps **full** access for 14
+days — a declined card is usually an expiry, not a decision to leave, and
+locking someone out on day one loses a customer over a problem they would have
+fixed. After that, read-only. Reads are never blocked and **export is never
+blocked, at any subscription state**.
+
+⚠️ The PayHere field names and hash formulas are written from documentation, not
+a live integration. See [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md#before-taking-real-money)
+before real money moves.
+
 ## Asset codes
 
 `TS-0001`, `TS-0002`, … Unique per tenant, gapless, never reused.

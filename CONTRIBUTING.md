@@ -52,6 +52,12 @@ browser.
 
 **Never trust a `tenantId` from a request.** It comes from the verified token.
 
+**Never activate a subscription from anything but a verified webhook.** A return
+URL is a navigation, not a payment, and anyone can type one.
+
+**Never process a payment callback without checking it is a duplicate.**
+Providers retry. A retry applied twice bills a customer twice.
+
 ## Adding a tenant-owned table
 
 1. Extend `TenantScopedModel` — that is what makes the query hook cover it.

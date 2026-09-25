@@ -3,9 +3,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { QuotaGuard } from './common/guards/quota.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { SubscriptionAccessGuard } from './common/guards/subscription-access.guard';
 import { TenantContextInterceptor } from './common/middleware/tenant-context.interceptor';
 import { TenantScopeHook } from './common/services/tenant-scope.hook';
 import { envSchema } from './configs/env.validation';
@@ -26,6 +28,8 @@ import { TenantModule } from './modules/tenant/tenant.module';
       // later on the first request that needs it.
       validate: (raw) => envSchema.parse(raw),
     }),
+    // Drives the daily dunning and usage-reconciliation job.
+    ScheduleModule.forRoot(),
     DatabaseModule,
     RedisModule,
     HealthModule,
@@ -44,11 +48,14 @@ import { TenantModule } from './modules/tenant/tenant.module';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // 2. Authorize - reads request.user, so it must run after step 1.
     { provide: APP_GUARD, useClass: RolesGuard },
-    // 3. Plan limits. After authorization on purpose: a viewer hitting a create
+    // 3. Subscription state. Narrows an unpaid tenant to read-only, while
+    //    never blocking a read and never blocking export.
+    { provide: APP_GUARD, useClass: SubscriptionAccessGuard },
+    // 4. Plan limits. After authorization on purpose: a viewer hitting a create
     //    route should hear 403, not an upgrade pitch for something they would
     //    not be allowed to do anyway.
     { provide: APP_GUARD, useClass: QuotaGuard },
-    // 4. Bind the tenant from the verified token, so every query below this
+    // 5. Bind the tenant from the verified token, so every query below this
     //    point is scoped. It runs after both guards by construction:
     //    interceptors always run after guards in Nest's request pipeline.
     { provide: APP_INTERCEPTOR, useClass: TenantContextInterceptor },

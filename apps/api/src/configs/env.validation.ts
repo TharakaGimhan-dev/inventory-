@@ -25,6 +25,10 @@ export const envSchema = z.object({
 
   CORS_ORIGINS: z.string().default('http://localhost:3000'),
 
+  // Used to build the return, cancel and notify URLs a payment provider needs.
+  WEB_URL: z.string().default('http://localhost:3000'),
+  API_URL: z.string().default('http://localhost:3001'),
+
   // Phase 0 does not use these yet. They are optional until the phase that needs
   // them, so a fresh clone boots without an ImageKit or PayHere account.
   IMAGEKIT_PUBLIC_KEY: z.string().optional(),
@@ -32,6 +36,8 @@ export const envSchema = z.object({
   IMAGEKIT_URL_ENDPOINT: z.string().optional(),
   PAYHERE_MERCHANT_ID: z.string().optional(),
   PAYHERE_SECRET: z.string().optional(),
+  // 'true' points checkout at PayHere's sandbox. Anything else is live.
+  PAYHERE_SANDBOX: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

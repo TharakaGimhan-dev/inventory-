@@ -41,6 +41,7 @@ export default function CapturePage() {
     metric: string;
     limit: number;
   } | null>(null);
+  const [readOnly, setReadOnly] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [lastCreated, setLastCreated] = useState<Asset | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
@@ -143,6 +144,7 @@ export default function CapturePage() {
     setBusy(true);
     setError(null);
     setLimitHit(null);
+    setReadOnly(null);
     setLastCreated(null);
 
     const payload = payloadFrom();
@@ -164,6 +166,10 @@ export default function CapturePage() {
         await countQueued();
         setToast('No connection — saved and will sync');
         setForm({ ...EMPTY, kind: form.kind });
+      } else if (e instanceof ApiError && e.readOnly) {
+        // An unpaid subscription, not a mistake the person made. It gets the
+        // reason and a way forward, same as a full plan.
+        setReadOnly(e.message);
       } else if (e instanceof ApiError && e.planLimit) {
         // A full plan is not a failure the person can fix by retrying, so it
         // gets its own prompt with a way forward instead of a red error.
@@ -210,6 +216,13 @@ export default function CapturePage() {
       {pendingCount > 0 ? (
         <div className="banner">
           {pendingCount} capture{pendingCount === 1 ? '' : 's'} waiting to sync.
+        </div>
+      ) : null}
+
+      {readOnly ? (
+        <div className="limit-prompt">
+          <strong>This item was not saved.</strong>
+          {readOnly} <Link href="/billing">See plans</Link>.
         </div>
       ) : null}
 

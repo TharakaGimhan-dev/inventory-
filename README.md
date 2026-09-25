@@ -5,16 +5,18 @@ SMEs; successor to the single-organisation **TS Asset Register**.
 
 **[`SAAS_SPEC.md`](SAAS_SPEC.md) is the single source of truth — read it before changing anything.**
 
-**Current state: Phase 4 complete.** A working product with plan limits enforced.
-Payments are Phase 5; until then every tenant is on the free plan and changing a
-plan is a database row.
+**Current state: Phase 5 complete.** A working product with plan limits enforced
+and a payment flow end to end. PayHere's field names and hash formulas still need
+verifying against a live merchant account — see
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#before-taking-real-money).
 
 | | |
 |---|---|
 | Web | Next.js 16 PWA — mobile capture, register, offline outbox |
 | API | NestJS 11 — Sequelize on PostgreSQL, Redis for sessions and idempotency |
 | Host | Railway — `web`, `api`, `postgres`, `redis` |
-| Tests | 40 API tests + 23 browser checks, all against real Postgres and Redis |
+| Payments | PayHere, behind a provider interface — webhook-verified, exactly-once |
+| Tests | 52 API tests + 32 browser checks, all against real Postgres and Redis |
 
 ## Documentation
 
@@ -118,6 +120,13 @@ path. The controller has no write route and the model refuses `update` and
 **Plan limits are enforced where they are counted, not where they are checked.**
 A guard that reads a counter and then acts cannot hold a limit when several
 requests arrive at once. The increment itself carries the condition.
+
+**Only a verified webhook can activate a subscription, and only once.** A return
+URL is a navigation, not a payment. Providers retry, and a retry applied twice
+bills a customer twice.
+
+**Export is never blocked.** At any subscription state, a customer can take their
+data and leave.
 
 ## Deploying
 

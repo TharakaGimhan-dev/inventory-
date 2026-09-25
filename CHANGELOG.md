@@ -2,6 +2,35 @@
 
 Phases are defined in [`SAAS_SPEC.md`](SAAS_SPEC.md) §10.
 
+## Phase 5 — Billing
+
+Subscriptions, invoices, dunning and read-only enforcement, behind a
+`PaymentProvider` interface with PayHere as the first implementation.
+
+- `POST /billing/subscribe` (owner) returns the fields the browser posts to the
+  provider; `POST /billing/cancel` ends at the close of the paid period, not
+  immediately — they have paid through it
+- `POST /webhooks/payhere` verifies the signature in constant time and is the
+  **only** thing that activates a subscription. A return URL is a navigation,
+  not a payment.
+- Exactly-once processing, enforced by a unique index on `(provider, eventId)`.
+  A replayed callback writes one invoice, not two.
+- Invoice numbers are global, sequential and never reused; an invoice raised in
+  error is voided, not deleted
+- `AccessService` narrows an unpaid tenant to read-only after a 14-day dunning
+  window — and **never** blocks a read or an export, at any subscription state
+- A daily job closes lapsed periods and reconciles every tenant's usage counters
+- Plan screen with checkout, invoice history and cancel; the capture form
+  explains a read-only lapse rather than showing a bare 403
+
+The PayHere field names and hash formulas are written from documentation, not
+from a live integration, and are marked for verification against the sandbox
+before real money moves.
+
+Also fixed flakiness in the test setup itself: the suites each rebuild the schema
+with `sync({ force: true })` and were racing each other under jest's parallel
+workers. `test:isolation` now runs them serially.
+
 ## Phase 4 — Plans and quotas
 
 Plan limits enforced end to end. Limits stay data: `plans.limits` is JSONB and

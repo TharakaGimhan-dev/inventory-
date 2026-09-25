@@ -292,3 +292,21 @@ button.ghost {
 }
 .limit-prompt strong { display: block; margin-bottom: 4px; }
 .limit-prompt a { color: var(--warn); font-weight: 600; }
+
+/* Invoices */
+table.invoices { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.invoices td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+table.invoices tr:last-child td { border-bottom: none; }
+table.invoices .mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+}
+table.invoices .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.pill.paid { border-color: var(--ok); color: var(--ok); }
+.pill.failed, .pill.refunded { border-color: var(--danger); color: var(--danger); }
+.pill.open { border-color: var(--warn); color: var(--warn); }

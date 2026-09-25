@@ -318,10 +318,23 @@ Sri Lanka constrains this. Stripe does not onboard LK-registered businesses dire
 | **Stripe** | Only viable via a foreign entity. Keep as the path for non-LK customers. |
 | **Manual/bank transfer** | Needed anyway — SME customers will ask for it. An `owner` requests an invoice, an operator marks it paid in the platform admin. |
 
-The API isolates this behind a `PaymentProvider` interface (`createSubscription`,
-`cancel`, `handleWebhook`) so a second provider is a new class, not a rewrite. Webhooks are
-signature-verified, idempotent by provider event id, and are the **only** thing that moves a
-subscription to `active`.
+The API isolates this behind a `PaymentProvider` interface (`createCheckout`,
+`parseWebhook`, `cancel`) so a second provider is a new class, not a rewrite.
+
+**Only a verified webhook may activate a subscription.** A return URL is a navigation,
+not a payment, and is trivially forged by typing it — so the plan changes when the
+provider says money moved, never when the browser comes back.
+
+Callbacks are processed **exactly once**, enforced by a unique index on
+`(provider, eventId)` in `webhook_events`. Providers retry; a retry applied twice extends
+a subscription twice or writes a second invoice for one payment.
+
+⚠️ **The PayHere field names and hash formulas in `payhere.provider.ts` are written from
+documentation, not from a live integration.** They must be verified against PayHere's
+current docs and their sandbox before real money moves — a mismatch fails in the worst
+way, where a customer is charged and the callback is rejected, so they pay and stay
+locked out. The signature check is also the security boundary: wrong in the lenient
+direction, anyone who can POST to the notify URL marks any subscription paid.
 
 ---
 
@@ -450,7 +463,7 @@ run on deploy via a Railway release command.
 | **2 — Core register** | locations, categories, assets, code counter, movements, audit entries. | Two tenants each hold `TS-0001` and cannot see each other's. **Done.** |
 | **3 — Web port** | Existing shell on the new API, capture form, register list, offline outbox. | A phone captures an asset offline and it syncs. **Done.** |
 | **4 — Plans & quotas** | plans, usage counters, QuotaGuard, upgrade prompts. | Free tenant is blocked at asset 101 with a 402 naming the limit. **Done.** |
-| **5 — Billing** | PayHere, webhooks, invoices, dunning, manual invoicing. | A real card moves a tenant Free → Starter. |
+| **5 — Billing** | PayHere, webhooks, invoices, dunning. | A real card moves a tenant Free → Starter. **Built; needs sandbox verification against a live merchant account.** |
 | **6 — Paid features** | Reports, label sheets, custom fields, bulk import, API keys. | Starter/Business differ in the product, not just the price page. |
 | **7 — Launch** | Marketing site, pricing page, onboarding, docs, support inbox. | The two customers are on Starter. |
 

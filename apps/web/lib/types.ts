@@ -45,8 +45,33 @@ export type Category = { id: string; name: string };
 
 export type UsageMetricName = 'assets' | 'members' | 'locations';
 
+export type AccessDecision = {
+  level: 'full' | 'read_only';
+  reason: string | null;
+  daysRemaining: number | null;
+};
+
+export type Invoice = {
+  id: string;
+  number: string;
+  status: 'open' | 'paid' | 'failed' | 'void' | 'refunded';
+  amount: string;
+  currency: string;
+  paidAt: string | null;
+  createdAt: string;
+};
+
 export type Subscription = {
   tenant: { id: string; name: string; status: string; trialEndsAt: string | null };
+  subscription: {
+    id: string;
+    status: 'pending' | 'active' | 'past_due' | 'cancelled';
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+    amount: string;
+    currency: string;
+  } | null;
+  access: AccessDecision;
   plan: {
     code: string;
     name: string;

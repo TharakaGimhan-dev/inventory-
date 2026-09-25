@@ -16,6 +16,14 @@ export class ApiError extends Error {
   }
 
   /**
+   * True when the tenant may read but not write — an unpaid or lapsed
+   * subscription, rather than a permission they lack.
+   */
+  get readOnly(): boolean {
+    return this.status === 403 && (this.body as { readOnly?: boolean })?.readOnly === true;
+  }
+
+  /**
    * True when the tenant hit a plan limit rather than doing anything wrong.
    * The body carries the metric, the limit and where to upgrade.
    */

@@ -24,8 +24,11 @@ DATABASE_URL=postgres://postgres@127.0.0.1:5432/inventory_test npm run test:isol
 | `tenant-isolation.spec.ts` | One tenant can never read, write or detect another's data |
 | `asset-register.spec.ts` | Asset codes are unique, gapless and never reused; audit entries are append-only |
 | `quota.spec.ts` | Usage counters stay accurate under concurrency and rollback; plan limits hold at the boundary |
+| `billing.spec.ts` | A forged or tampered payment callback is refused; a retry is recognised as a duplicate and a renewal is not |
 
-40 tests. Each of them exists because the property it checks is one a future
+52 tests. They run serially (`--runInBand`) because each rebuilds the schema with
+`sync({ force: true })` — sharing one database under parallel workers, they drop
+each other's tables mid-test. Each of them exists because the property it checks is one a future
 change could plausibly break without any other test noticing.
 
 ### What the isolation suite actually asserts
@@ -47,8 +50,9 @@ Needs the API and the web app both running, and a user that can sign in.
 
 ```bash
 cd apps/web
-npm run test:e2e          # auth, capture, offline outbox
-node tests/quota-e2e.mjs  # plan screen and upgrade prompt
+npm run test:e2e            # auth, capture, offline outbox
+node tests/quota-e2e.mjs    # plan limits and the upgrade prompt
+node tests/billing-e2e.mjs  # the plan screen, invoices and checkout
 ```
 
 Set `PLAYWRIGHT_CHROMIUM_PATH` if the machine already has a Chromium; otherwise
@@ -63,6 +67,10 @@ These cover what only a browser can prove:
   arrives in the register **exactly once**.
 - A tenant on a full plan sees an upgrade prompt naming the limit, not a raw
   error, and the item is not saved.
+- A paying customer sees their plan marked current with its real limits, their
+  paid invoice, and an upgrade button only for plans they are not already on.
+- Returning from a checkout says the payment is **being confirmed**, never that
+  it succeeded — only the webhook knows that.
 
 Both scripts exit non-zero on failure, so they fail a CI job rather than printing
 `FAIL` and passing.
