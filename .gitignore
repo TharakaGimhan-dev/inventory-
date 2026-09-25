@@ -4,10 +4,19 @@ build/
 coverage/
 .next/
 
+# Real environment files never get committed; the *.example templates beside
+# them always do. The negation is a glob rather than the literal
+# ".env.example", because the web app's template is ".env.local.example" and
+# an exact-name exception silently left it out of the repository - which broke
+# the setup steps in its own README for anyone cloning.
 .env
 .env.*
-!.env.example
+!*.example
+
 *serviceAccount*.json
+
+# Redis writes a snapshot into the working directory when it is run locally.
+dump.rdb
 
 *.log
 npm-debug.log*
