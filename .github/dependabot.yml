@@ -1,0 +1,31 @@
+# Dependabot watches for advisories published between pushes.
+#
+# CI audits dependencies on every push, which catches nothing during a quiet
+# week - and a quiet week is exactly when a vulnerability lands unnoticed
+# (OWASP A03:2025, Software Supply Chain Failures).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /apps/api
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for routine bumps; a security fix still comes on its own so it
+      # is not held up behind an unrelated major.
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

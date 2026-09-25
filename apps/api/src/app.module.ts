@@ -4,11 +4,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { FeatureGuard } from './common/guards/feature.guard';
 import { QuotaGuard } from './common/guards/quota.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { SubscriptionAccessGuard } from './common/guards/subscription-access.guard';
+import { SecurityModule } from './common/security/security.module';
+import { throttlerConfig } from './common/security/throttler.config';
 import { TenantContextInterceptor } from './common/middleware/tenant-context.interceptor';
 import { TenantScopeHook } from './common/services/tenant-scope.hook';
 import { envSchema } from './configs/env.validation';
@@ -33,6 +36,8 @@ import { TenantModule } from './modules/tenant/tenant.module';
     }),
     // Drives the daily dunning and usage-reconciliation job.
     ScheduleModule.forRoot(),
+    SecurityModule,
+    ThrottlerModule.forRootAsync(throttlerConfig),
     DatabaseModule,
     RedisModule,
     HealthModule,
@@ -52,6 +57,9 @@ import { TenantModule } from './modules/tenant/tenant.module';
 
     // Order matters and is the order they are listed in.
     //
+    // 0. Rate limit, before anything that costs work. A guessing attack should
+    //    not get as far as a bcrypt comparison.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     // 1. Authenticate - populates request.user, or rejects.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // 2. Authorize - reads request.user, so it must run after step 1.

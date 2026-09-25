@@ -20,6 +20,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       ]),
       ignoreExpiration: false,
       secretOrKey: config.get<string>('JWT_ACCESS_SECRET')!,
+      // Pinned. Left open, a verifier accepts whatever algorithm the token's
+      // own header names - the family of algorithm-confusion attacks. There is
+      // one algorithm in use here and it is named here.
+      algorithms: ['HS256'],
     });
   }
 

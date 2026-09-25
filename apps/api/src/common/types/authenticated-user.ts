@@ -25,4 +25,6 @@ export type RefreshTokenPayload = {
   sub: string;
   /** Session id, so one device can be revoked without logging out the others. */
   sid: string;
+  /** Issued-at, set by the signer. Compared against users.tokensValidFrom. */
+  iat?: number;
 };

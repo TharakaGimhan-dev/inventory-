@@ -68,6 +68,12 @@ jobs:
           PGPASSWORD=postgres psql -h localhost -U postgres -d inventory_test \
             -c 'CREATE EXTENSION IF NOT EXISTS "pgcrypto"; CREATE EXTENSION IF NOT EXISTS "citext";'
 
+      - name: Dependency audit
+        # A gate, not a report. Production dependencies only: a dev-tool
+        # advisory should not block a deploy, and --omit=dev says so explicitly
+        # rather than by choosing a lenient severity threshold.
+        run: npm audit --omit=dev --audit-level=moderate
+
       - run: npm run build
 
       - name: Migrations apply from an empty database
@@ -94,5 +100,6 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
 
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=moderate
       - run: npm run typecheck
       - run: npm run build

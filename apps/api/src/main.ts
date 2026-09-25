@@ -2,17 +2,35 @@
 // It creates the Nest app, applies global settings, mounts Swagger and starts listening.
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { json, urlencoded } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
+
+  // Railway terminates TLS at its edge and forwards, so without this every
+  // request looks like it came from the proxy. That would put the proxy's
+  // address on every audit entry and give the whole internet one shared rate
+  // limit bucket. 1 = trust exactly one hop; trusting all of them would let a
+  // caller forge the header and get a fresh bucket per request.
+  app.set('trust proxy', 1);
 
   // helmet sets the security headers a public API should always send.
   app.use(helmet());
+
+  // Explicit body limits. Express defaults to 100kb, which silently answered
+  // 413 to an import the route's own schema said could be 5MB - so the ceiling
+  // is raised only where it is needed and stated everywhere else. An unbounded
+  // body is a way to spend the server's memory for the price of one request.
+  app.use('/api/v1/assets/import', json({ limit: '6mb' }));
+  app.use(json({ limit: '256kb' }));
+  // PayHere posts its callback as a form.
+  app.use(urlencoded({ extended: false, limit: '64kb' }));
 
   // The JWT strategy reads the access token from an httpOnly cookie, which
   // requires the cookies to be parsed first.

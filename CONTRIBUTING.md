@@ -53,6 +53,14 @@ Excel executes them, and the value came from a user.
 
 **Never store an API key.** Only its hash.
 
+**Never add an unauthenticated or password-handling route without a throttle.**
+`@Throttle` with the budget from `THROTTLE` in `common/security/`.
+
+**Never leave a JWT verifier's algorithms unpinned.**
+
+**Never widen `trust proxy` beyond the number of proxies actually in front of
+the app.** Each extra hop is a header a caller can forge.
+
 **Never give a secret a `NEXT_PUBLIC_` prefix.** That prefix ships it to the
 browser.
 

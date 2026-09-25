@@ -1,6 +1,7 @@
 // auth.service.ts owns registration, login, token issue and revocation.
 import {
-  ConflictException, Inject, Injectable, UnauthorizedException,
+  ConflictException, ForbiddenException, Inject, Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -20,6 +21,7 @@ import { Plan } from '../../billing/models/plan.model';
 import { Membership } from '../../tenant/models/membership.model';
 import { Tenant } from '../../tenant/models/tenant.model';
 import { User } from '../../user/models/user.model';
+import { LoginAttemptsService } from '../../../common/security/login-attempts.service';
 import { LoginInput, RegisterInput } from '../schemas/auth.schema';
 
 // @nestjs/jwt types expiresIn as the `ms` library's template literal union
@@ -47,6 +49,7 @@ export class AuthService {
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly attempts: LoginAttemptsService,
   ) {}
 
   /**
@@ -105,7 +108,17 @@ export class AuthService {
     });
   }
 
-  async login(input: LoginInput) {
+  async login(input: LoginInput, ip?: string) {
+    // Checked before the password, so a locked account costs an attacker a
+    // round trip and no bcrypt work at all.
+    const lockedFor = await this.attempts.lockedFor(input.email);
+    if (lockedFor > 0) {
+      throw new ForbiddenException(
+        `Too many failed attempts. Try again in ${Math.ceil(lockedFor / 60)} minute(s), ` +
+          `or reset your password.`,
+      );
+    }
+
     const user = await this.users.findOne({ where: { email: input.email } });
 
     // The password is compared even when no user was found, against a dummy
@@ -115,6 +128,7 @@ export class AuthService {
     const ok = await bcrypt.compare(input.password, hash);
 
     if (!user || !ok || !user.isActive) {
+      await this.attempts.recordFailure(input.email, ip);
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -125,11 +139,13 @@ export class AuthService {
 
     if (memberships.length === 0) {
       // The successor to the Firebase app's "not linked to an organisation".
+      // The password was right, so this is not a failed attempt.
       throw new UnauthorizedException(
         'Your account is not linked to an organisation',
       );
     }
 
+    await this.attempts.recordSuccess(input.email, ip);
     await user.update({ lastLoginAt: new Date() });
 
     return this.issueTokens(user, memberships[0]);
@@ -176,6 +192,16 @@ export class AuthService {
     const user = await this.users.findByPk(payload.sub);
     if (!user || !user.isActive) throw new UnauthorizedException();
 
+    // A token minted before the password changed is dead, even if its Redis
+    // session somehow survived. The column existed from Phase 1 and nothing
+    // read it, which made "changing your password signs out the attacker" a
+    // promise the code did not keep.
+    if (user.tokensValidFrom && payload.iat) {
+      if (payload.iat * 1000 < user.tokensValidFrom.getTime()) {
+        throw new UnauthorizedException('Session ended when the password changed');
+      }
+    }
+
     const membership = await this.memberships.findOne({
       where: {
         userId: user.id,
@@ -190,6 +216,31 @@ export class AuthService {
     await this.redis.del(sessionKey(payload.sub, payload.sid));
 
     return this.issueTokens(user, membership);
+  }
+
+  /**
+   * Changes a password and ends every other session.
+   *
+   * Both halves matter: without the revocation, someone who stole a session
+   * keeps it after the owner has done the one thing they know to do about it.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.users.findByPk(userId);
+    if (!user) throw new UnauthorizedException();
+
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) throw new UnauthorizedException('Your current password is not correct');
+
+    await user.update({
+      passwordHash: await bcrypt.hash(newPassword, BCRYPT_ROUNDS),
+      // Every access token issued before this instant is now refused.
+      tokensValidFrom: new Date(),
+    });
+
+    // And every refresh session, on every device.
+    await this.logout(userId);
+
+    return { changed: true, message: 'Password changed. You have been signed out everywhere.' };
   }
 
   async logout(userId: string, sessionId?: string) {

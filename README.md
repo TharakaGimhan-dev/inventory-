@@ -18,6 +18,7 @@ hash formulas still need verifying against a live merchant account — see
 | Host | Railway — `web`, `api`, `postgres`, `redis` |
 | Payments | PayHere, behind a provider interface — webhook-verified, exactly-once |
 | Tests | 70 API tests + 45 browser checks, all against real Postgres and Redis |
+| Security | Reviewed against OWASP Top 10:2025; 0 dependency vulnerabilities |
 
 ## Documentation
 
@@ -28,6 +29,7 @@ hash formulas still need verifying against a live merchant account — see
 | [`apps/web/README.md`](apps/web/README.md) | The web app: the proxy, offline capture, upgrade prompts. |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Railway, step by step, and what breaks if you skip a step. |
 | [`docs/TESTING.md`](docs/TESTING.md) | What is tested, how to run it, and what each suite protects. |
+| [`docs/SECURITY.md`](docs/SECURITY.md) | Review against OWASP Top 10:2025, what defends what, and the gaps that remain. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Conventions, and the rules that must not be broken. |
 | [`CHANGELOG.md`](CHANGELOG.md) | What each phase delivered. |
 

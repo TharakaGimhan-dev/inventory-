@@ -2,6 +2,44 @@
 
 Phases are defined in [`SAAS_SPEC.md`](SAAS_SPEC.md) §10.
 
+## Security review — OWASP Top 10:2025
+
+An audit against the 2025 list, with fixes. The finding that mattered: **forty
+wrong passwords in ten seconds were all answered, none were recorded, and
+nothing slowed down.** No rate limit, no lockout, no log.
+
+Fixed:
+
+- Rate limiting (10 logins/min, 5 signups/hour, 300 req/min otherwise) **and**
+  a per-account lockout after 8 failures. Two layers, because a rate limit keyed
+  on the caller's address gives an attacker with many addresses many budgets
+  against one account.
+- Counters stored in **Redis**, not in the process — in-memory counts give each
+  replica its own budget, so scaling to three would have tripled every limit.
+  Written against the existing ioredis client rather than adding a dependency.
+- `users.tokensValidFrom` had existed since Phase 1 and **nothing read it**,
+  which made "changing your password ends a stolen session" a promise the code
+  did not keep. Now enforced, with a `POST /auth/change-password` that sets it
+  and deletes every refresh session.
+- Failed logins and lockouts are logged with the account and address.
+- JWT verification pins **HS256**. Unpinned, a verifier accepts whatever
+  algorithm the token's own header names.
+- `trust proxy = 1`. Without it every request appeared to come from Railway's
+  proxy: one shared rate-limit bucket for the whole internet, and the proxy's
+  address on every audit entry.
+- Explicit body limits. Express defaults to 100 KB, which silently answered 413
+  to an import the route's own schema said could be 5 MB.
+- Full security header set on the web app, including a CSP whose
+  `connect-src 'self'` means an injected script has nowhere to send what it
+  reads. `poweredByHeader` off.
+- `uuid` pinned past GHSA-w5hq-g745-h8pq via an override: **0 vulnerabilities**
+  in both apps.
+- CI audits production dependencies as a gate; Dependabot watches between pushes.
+
+[`docs/SECURITY.md`](docs/SECURITY.md) records the eight gaps that remain —
+email verification, password reset and alerting being the three to close before
+launch.
+
 ## Phase 6 — Paid features
 
 What makes Starter and Business differ in the product rather than only on the
