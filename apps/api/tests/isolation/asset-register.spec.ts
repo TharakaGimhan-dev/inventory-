@@ -7,6 +7,7 @@
 //      two captures race
 //   2. audit entries cannot be updated or deleted by anyone
 import { Sequelize } from 'sequelize-typescript';
+import { testDatabaseUrl } from './test-database';
 import { Asset } from '../../src/modules/asset/models/asset.model';
 import { AssetMovement } from '../../src/modules/asset/models/asset-movement.model';
 import { Category } from '../../src/modules/asset/models/category.model';
@@ -38,7 +39,7 @@ const asB = <T>(fn: () => T) =>
   runWithTenant({ tenantId: TENANT_B, userId: USER_A }, fn);
 
 beforeAll(async () => {
-  sequelize = new Sequelize(process.env.DATABASE_URL!, {
+  sequelize = new Sequelize(testDatabaseUrl(), {
     dialect: 'postgres',
     logging: false,
     models: [Asset, AssetMovement, Location, Category, Counter, AuditEntry],

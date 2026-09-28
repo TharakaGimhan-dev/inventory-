@@ -31,6 +31,7 @@ every endpoint is a map of the API for anyone probing it.
 | `billing` | Plans, limits, metered usage, subscriptions, invoices |
 | `export` | CSV, Excel, PDF report, QR labels, bulk import |
 | `apikey` | Customer API credentials |
+| `upload` | ImageKit upload signatures and photo storage metering |
 | `health` | The deploy gate |
 
 ## Tenant isolation
@@ -171,6 +172,33 @@ able to delete the register or change what the company is billed.
 
 Keys are revoked, never deleted: the audit trail refers to them, and "when did
 this stop working" is worth being able to answer.
+
+## Photo uploads
+
+The photo goes straight from the client to ImageKit; the API only signs.
+
+1. `GET /uploads/config` → `{ enabled, urlEndpoint }`. `enabled` is true only when
+   all three `IMAGEKIT_*` variables are set.
+2. `POST /uploads/sign` with `{ size, contentType }` (entry and above, ≤ 10 MB,
+   jpeg/png/webp). The declared `size` is reserved against `storage_bytes` with
+   `increaseWithinLimit` first — 402 if it does not fit — and only then is a
+   signature issued: `HMAC-SHA1(privateKey, token + expire)`, 30 minutes.
+   With no keys it answers **503** "Photo uploads are not configured yet".
+3. The client uploads to `https://upload.imagekit.io/api/v1/files/upload` with the
+   returned `folder`, `fileName`, `publicKey`, `signature`, `expire`, `token` and
+   `useUniqueFileName=false`, then sends the returned `path` in `imageIds`.
+
+`imageIds` holds **paths**, not ImageKit file ids. The image URL is
+`urlEndpoint + path`, and the tenant is in the path (`/tenants/<tenantId>/…`),
+so asset create/update refuse another tenant's photo (400) and more than
+`photosPerAsset` photos (402) without calling ImageKit. The server picks the
+folder and the file name, so neither can be steered by the client.
+
+The private key never appears in a response or a log.
+
+Known limitations: reserved bytes are the **declared** size — ImageKit cannot bind
+a size into a signature — and they are **not refunded** when a photo is removed
+or an upload never happens.
 
 ## Asset codes
 

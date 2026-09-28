@@ -169,7 +169,10 @@ This is the successor to `orgs/{orgId}/members/{uid}`.
 (`asset` | `consumable`), `name`, `description`, `categoryId`, `locationId`,
 `assignedToUserId`, `serialNumber`, `status` (`in_use`|`in_store`|`repair`|`written_off`|`disposed`),
 `condition`, `purchaseDate`, `purchasePrice`, `replacementValue`, `supplier`, `warrantyEndsAt`,
-`quantity` (consumables only), `imageIds` (JSONB, ImageKit file ids), `customFields` (JSONB),
+`quantity` (consumables only), `imageIds` (JSONB, ImageKit file **paths** such as
+`/tenants/<tenantId>/<uuid>.jpg` — not ImageKit file ids: a client builds the image URL as
+`urlEndpoint + path` with no lookup, and the tenant is readable from the path, so an asset
+can be refused another tenant's photo without asking ImageKit), `customFields` (JSONB),
 `deletedAt` (soft delete — assets are never hard-deleted).
 
 **`asset_movements`** — location/custody history.
@@ -393,7 +396,9 @@ DELETE /api-keys/:id                  revoked, not deleted
 
 GET/POST/PATCH/DELETE  /locations  /categories
 
-POST   /uploads/sign                  ImageKit signature, quota: storage_bytes
+GET    /uploads/config                any role: { enabled, urlEndpoint }
+POST   /uploads/sign                  entry+, reserves storage_bytes, returns an ImageKit
+                                      signature and a server-chosen `path` for imageIds
 
 GET    /dashboard                     counts by status/location/category, value totals
 GET    /audit                         owner|admin, paginated, read-only
@@ -409,6 +414,19 @@ GET    /health                        deployment smoke check
 GET    /admin/tenants                 platformRole: support|superadmin
 POST   /admin/impersonate/:tenantId   superadmin, audited
 ```
+
+### 7.1 Photo uploads
+
+The file never passes through the API. `POST /uploads/sign` reserves the declared size
+against `storage_bytes` (on the increment, like every limit), then returns ImageKit's
+client-upload signature (`HMAC-SHA1(privateKey, token + expire)`, 30-minute expiry) plus a
+`folder` of `/tenants/<tenantId>` and a `fileName` the server chose. The client uploads to
+ImageKit with `useUniqueFileName=false` and stores the returned `path` in `imageIds`.
+Asset writes accept only paths in the caller's own folder, at most `photosPerAsset` of them.
+
+Known limitations: the reserved bytes are the client's **declared** size (ImageKit cannot
+bind a size into a signature), and they are **not refunded** when a photo is removed or an
+upload never happens. Storage usage only grows until a refund path exists.
 
 ---
 

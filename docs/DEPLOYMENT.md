@@ -43,6 +43,10 @@ API_URL=https://<your api domain>
 PAYHERE_MERCHANT_ID=<from the PayHere merchant portal>
 PAYHERE_SECRET=<from the PayHere merchant portal>
 PAYHERE_SANDBOX=false
+
+IMAGEKIT_PUBLIC_KEY=<ImageKit dashboard → Developer options>
+IMAGEKIT_PRIVATE_KEY=<same page — API service only>
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/<your id>
 ```
 
 `WEB_URL` and `API_URL` build the return, cancel and notify URLs PayHere needs.
@@ -51,6 +55,12 @@ customers pay and stay locked out.
 
 Leave the PayHere variables empty and the app runs with online payment off:
 `/billing/subscribe` answers "not configured yet" instead of half-working.
+
+The ImageKit keys go in the **API service's variables only** — never the web
+service, never with a `NEXT_PUBLIC_` prefix. Clients get a per-upload signature
+from `POST /uploads/sign` and never need the private key. Leave any of the three
+empty and photo uploads are off: `GET /uploads/config` reports `enabled: false`
+and `/uploads/sign` answers 503.
 
 **Reference the services, do not paste the values.** `${{Postgres.DATABASE_URL}}`
 keeps working when a password rotates; a pasted string breaks the deploy on a day

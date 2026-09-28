@@ -2,6 +2,19 @@
 
 Phases are defined in [`SAAS_SPEC.md`](SAAS_SPEC.md) §10.
 
+## Photo uploads
+
+- `GET /uploads/config` and `POST /uploads/sign`: the API signs a one-time
+  ImageKit client upload into `/tenants/<tenantId>/<uuid>.<ext>`, after reserving
+  the photo's size against the plan's storage (402 when full, held on the
+  increment so racing uploads cannot overshoot). 503 with no ImageKit keys.
+- `assets.imageIds` now stores ImageKit paths and is validated on create and
+  update: another tenant's path is 400, more than `photosPerAsset` is 402.
+- The test suites refuse any `DATABASE_URL` whose database name does not end in
+  `_test`, so they can never drop the dev database.
+- Known limitations: storage is reserved at the client's declared size and is
+  not refunded when a photo is removed.
+
 ## Security review — OWASP Top 10:2025
 
 An audit against the 2025 list, with fixes. The finding that mattered: **forty

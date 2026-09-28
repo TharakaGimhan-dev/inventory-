@@ -32,6 +32,9 @@ const base = {
   replacementValue: money,
   supplier: z.string().max(160).trim().optional().nullable(),
   warrantyEndsAt: isoDate,
+  // ImageKit file paths (/tenants/<tenantId>/<uuid>.jpg) from POST
+  // /uploads/sign, not ImageKit file ids. The tenant and plan checks are in
+  // assertImagePaths; 10 is only the ceiling of the largest plan.
   imageIds: z.array(z.string().max(200)).max(10).optional(),
   customFields: z.record(z.string(), z.unknown()).optional(),
 };

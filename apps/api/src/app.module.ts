@@ -25,6 +25,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { ExportModule } from './modules/export/export.module';
 import { HealthModule } from './modules/health/health.module';
 import { TenantModule } from './modules/tenant/tenant.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
     // which otherwise swallows /assets/export and answers "uuid is expected".
     ExportModule,
     AssetModule,
+    UploadModule,
   ],
   providers: [
     TenantScopeHook,

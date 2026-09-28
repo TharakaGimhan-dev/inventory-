@@ -13,7 +13,9 @@ npm run test:isolation
 ```
 
 Needs `DATABASE_URL` pointing at a database you do not mind being dropped — the
-suites `sync({ force: true })`.
+suites `sync({ force: true })`. Its name must end in `_test`; `tests/isolation/test-database.ts`
+refuses anything else, because Jest does not read `.env` and a shell with the dev URL
+exported would otherwise wipe the dev database.
 
 ```bash
 DATABASE_URL=postgres://postgres@127.0.0.1:5432/inventory_test npm run test:isolation
@@ -26,8 +28,9 @@ DATABASE_URL=postgres://postgres@127.0.0.1:5432/inventory_test npm run test:isol
 | `quota.spec.ts` | Usage counters stay accurate under concurrency and rollback; plan limits hold at the boundary |
 | `billing.spec.ts` | A forged or tampered payment callback is refused; a retry is recognised as a duplicate and a renewal is not |
 | `export.spec.ts` | CSV escaping and formula neutralisation; the import parser reports every problem with its line number |
+| `uploads.spec.ts` | Upload signatures are ImageKit's HMAC and never carry the private key; storage limits hold under racing uploads; an asset only carries its own tenant's photo paths, within the plan |
 
-70 tests. They run serially (`--runInBand`) because each rebuilds the schema with
+92 tests. They run serially (`--runInBand`) because each rebuilds the schema with
 `sync({ force: true })` — sharing one database under parallel workers, they drop
 each other's tables mid-test. Each of them exists because the property it checks is one a future
 change could plausibly break without any other test noticing.

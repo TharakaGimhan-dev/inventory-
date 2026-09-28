@@ -6,6 +6,7 @@
 //
 // These run against a real Postgres. A mock cannot prove a Sequelize hook fires.
 import { Sequelize } from 'sequelize-typescript';
+import { testDatabaseUrl } from './test-database';
 import {
   Column, DataType, Default, Model, PrimaryKey, Table,
 } from 'sequelize-typescript';
@@ -65,7 +66,7 @@ const asTenantB = <T>(fn: () => T) =>
   runWithTenant({ tenantId: TENANT_B, userId: USER_B }, fn);
 
 beforeAll(async () => {
-  sequelize = new Sequelize(process.env.DATABASE_URL!, {
+  sequelize = new Sequelize(testDatabaseUrl(), {
     dialect: 'postgres',
     logging: false,
     models: [Widget, GlobalThing],

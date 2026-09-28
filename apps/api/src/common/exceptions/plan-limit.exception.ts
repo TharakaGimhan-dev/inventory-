@@ -10,6 +10,7 @@ const HUMAN: Record<string, string> = {
   members: 'team members',
   locations: 'locations',
   storage_bytes: 'bytes of storage',
+  photosPerAsset: 'photos per asset',
 };
 
 export class PlanLimitExceededException extends HttpException {

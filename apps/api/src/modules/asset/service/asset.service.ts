@@ -22,6 +22,7 @@ import {
   CreateAssetInput, ListAssetsQuery, MoveAssetInput, UpdateAssetInput,
 } from '../schemas/asset.schema';
 import { AssetCodeService } from './asset-code.service';
+import { assertImagePaths } from '../../upload/service/image-paths';
 
 /**
  * Fields only admin and owner may write.
@@ -94,6 +95,11 @@ export class AssetService {
 
     const limits = await this.plans.effectiveLimits(user.tenantId);
 
+    // Before the transaction: a refused photo costs no slot and no code.
+    if (input.imageIds) {
+      assertImagePaths(input.imageIds, user.tenantId, limits.photosPerAsset);
+    }
+
     return this.sequelize.transaction(async (transaction) => {
       // The authoritative limit check, and it comes first: claiming the slot
       // before issuing a code means a refused capture does not consume one.
@@ -155,6 +161,13 @@ export class AssetService {
     meta: RequestMeta,
   ) {
     this.assertMayWriteAdminFields(input, user);
+
+    // Checked only when the photos are being set. An asset whose photos
+    // predate a downgrade keeps them until someone edits the list.
+    if (input.imageIds) {
+      const limits = await this.plans.effectiveLimits(user.tenantId);
+      assertImagePaths(input.imageIds, user.tenantId, limits.photosPerAsset);
+    }
 
     return this.sequelize.transaction(async (transaction) => {
       const asset = await this.assets.findByPk(id, { transaction });
