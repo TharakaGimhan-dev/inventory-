@@ -317,6 +317,26 @@ describe('photos on an asset', () => {
     });
   });
 
+  describe('the asset limit under a burst', () => {
+    it('refuses the overflow with 402 instead of deadlocking the pool', async () => {
+      // Three slots, eight captures - more than the pool's five connections.
+      // The 402 used to read usage on a second connection while the first
+      // was held, and a burst like this hung every request in it.
+      limits.assets = 3;
+
+      const results = await Promise.allSettled(
+        Array.from({ length: 8 }, () => create()),
+      );
+
+      expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(3);
+      const refused = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
+      expect(refused).toHaveLength(5);
+      for (const r of refused) {
+        expect(r.reason).toBeInstanceOf(PlanLimitExceededException);
+      }
+    }, 20_000);
+  });
+
   describe('update', () => {
     it("accepts the tenant's own paths", async () => {
       limits.photosPerAsset = 5;

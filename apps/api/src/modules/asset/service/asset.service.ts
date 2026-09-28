@@ -117,7 +117,11 @@ export class AssetService {
           throw new PlanLimitExceededException(
             UsageMetric.ASSETS,
             limits.assets,
-            await this.usage.current(UsageMetric.ASSETS, user.tenantId),
+            // Through the same transaction: a second connection here
+            // deadlocks a burst of refusals larger than the pool.
+            await this.usage.current(
+              UsageMetric.ASSETS, user.tenantId, undefined, transaction,
+            ),
           );
         }
       } else {

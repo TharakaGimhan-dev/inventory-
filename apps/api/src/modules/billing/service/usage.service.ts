@@ -103,11 +103,18 @@ export class UsageService {
     return rows.length > 0 ? Number(rows[0].value) : null;
   }
 
-  /** The current value of one metric. Zero when nothing has been counted yet. */
+  /**
+   * The current value of one metric. Zero when nothing has been counted yet.
+   *
+   * Pass the transaction when calling from inside one. Without it the read
+   * asks the pool for a second connection while the first is still held, and a
+   * burst of such requests larger than the pool deadlocks every one of them.
+   */
   async current(
     metric: UsageMetric,
     tenantId = getCurrentTenantId(),
     period = CURRENT_PERIOD,
+    transaction?: Transaction,
   ): Promise<number> {
     if (!tenantId) return 0;
 
@@ -117,6 +124,7 @@ export class UsageService {
       {
         replacements: { tenantId, metric, period },
         type: QueryTypes.SELECT,
+        transaction,
       },
     );
 

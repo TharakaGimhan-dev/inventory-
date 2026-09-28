@@ -30,7 +30,7 @@ DATABASE_URL=postgres://postgres@127.0.0.1:5432/inventory_test npm run test:isol
 | `export.spec.ts` | CSV escaping and formula neutralisation; the import parser reports every problem with its line number |
 | `uploads.spec.ts` | Upload signatures are ImageKit's HMAC and never carry the private key; storage limits hold under racing uploads; an asset only carries its own tenant's photo paths, within the plan |
 
-92 tests. They run serially (`--runInBand`) because each rebuilds the schema with
+93 tests. They run serially (`--runInBand`) because each rebuilds the schema with
 `sync({ force: true })` — sharing one database under parallel workers, they drop
 each other's tables mid-test. Each of them exists because the property it checks is one a future
 change could plausibly break without any other test noticing.
