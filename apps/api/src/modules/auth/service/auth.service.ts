@@ -1,13 +1,13 @@
 // auth.service.ts owns registration, login, token issue and revocation.
 import {
-  ConflictException, ForbiddenException, Inject, Injectable,
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import Redis from 'ioredis';
 import { Sequelize } from 'sequelize-typescript';
 import {
@@ -22,6 +22,9 @@ import { Membership } from '../../tenant/models/membership.model';
 import { Tenant } from '../../tenant/models/tenant.model';
 import { User } from '../../user/models/user.model';
 import { LoginAttemptsService } from '../../../common/security/login-attempts.service';
+import { MailService } from '../../../common/mail/mail.service';
+import { UsageMetric } from '../../billing/models/usage-counter.model';
+import { UsageService } from '../../billing/service/usage.service';
 import { LoginInput, RegisterInput } from '../schemas/auth.schema';
 
 // @nestjs/jwt types expiresIn as the `ms` library's template literal union
@@ -50,6 +53,8 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly attempts: LoginAttemptsService,
+    private readonly mail: MailService,
+    private readonly usage: UsageService,
   ) {}
 
   /**
@@ -243,6 +248,107 @@ export class AuthService {
     return { changed: true, message: 'Password changed. You have been signed out everywhere.' };
   }
 
+  /**
+   * Emails a six-digit reset code, if the address has an account.
+   *
+   * The answer to the caller is the same either way, so this can't be used
+   * to learn who has an account. A code rather than a link: it can be typed
+   * into the phone app, which has no web page to open.
+   */
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.users.findOne({ where: { email } });
+    if (!user || !user.isActive) return;
+
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    // Only a hash is kept; Redis never holds a working code.
+    await this.redis.set(
+      resetKey(user.id),
+      JSON.stringify({ hash: hashCode(code), attempts: 0 }),
+      'EX',
+      RESET_TTL_SECONDS,
+    );
+    await this.mail.send({
+      to: user.email,
+      subject: 'Your AssetSnap password code',
+      text:
+        `Your code is ${code}
+
+` +
+        `Enter it in AssetSnap to set a new password. It works once, for ` +
+        `${RESET_TTL_SECONDS / 60} minutes.
+
+` +
+        `If you didn't ask for this, ignore this email - your password has ` +
+        `not changed.`,
+    });
+  }
+
+  /**
+   * Sets a new password with an emailed code, then ends every session - as
+   * a password change does - and activates any invitations the person had.
+   *
+   * Every failure reads the same, and a code dies after five wrong tries:
+   * a million codes can't be guessed five at a time within 30 minutes.
+   */
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const refused = new BadRequestException('That code is wrong or has expired');
+    const user = await this.users.findOne({ where: { email } });
+    if (!user || !user.isActive) throw refused;
+
+    const key = resetKey(user.id);
+    const stored = await this.redis.get(key);
+    if (!stored) throw refused;
+    const record = JSON.parse(stored) as { hash: string; attempts: number };
+
+    const given = Buffer.from(hashCode(code), 'hex');
+    const expected = Buffer.from(record.hash, 'hex');
+    if (!timingSafeEqual(given, expected)) {
+      record.attempts += 1;
+      if (record.attempts >= RESET_MAX_ATTEMPTS) {
+        await this.redis.del(key);
+      } else {
+        await this.redis.set(key, JSON.stringify(record), 'KEEPTTL');
+      }
+      throw refused;
+    }
+    await this.redis.del(key);
+
+    await this.sequelize.transaction(async (transaction) => {
+      await user.update(
+        {
+          passwordHash: await bcrypt.hash(newPassword, BCRYPT_ROUNDS),
+          tokensValidFrom: new Date(),
+        },
+        { transaction },
+      );
+
+      // An invited person sets their first password this way; that is
+      // also them accepting. Each organisation now counts one more member.
+      const invited = await this.memberships.findAll({
+        where: { userId: user.id, status: MembershipStatus.INVITED },
+        transaction,
+      });
+      for (const membership of invited) {
+        await membership.update(
+          { status: MembershipStatus.ACTIVE, joinedAt: new Date() },
+          { transaction },
+        );
+        await this.usage.change(
+          UsageMetric.MEMBERS,
+          1,
+          transaction,
+          undefined,
+          membership.tenantId,
+        );
+      }
+    });
+
+    await this.logout(user.id);
+    // A person locked out by wrong guesses gets back in with the new one.
+    await this.attempts.recordSuccess(email, undefined);
+    return { reset: true, message: 'Password set. Sign in with the new one.' };
+  }
+
   async logout(userId: string, sessionId?: string) {
     if (sessionId) {
       await this.redis.del(sessionKey(userId, sessionId));
@@ -320,6 +426,12 @@ export class AuthService {
     return `${base}-${randomUUID().slice(0, 8)}`;
   }
 }
+
+const RESET_TTL_SECONDS = 30 * 60;
+const RESET_MAX_ATTEMPTS = 5;
+const resetKey = (userId: string) => `pwreset:${userId}`;
+const hashCode = (code: string) =>
+  createHash('sha256').update(code).digest('hex');
 
 const sessionKey = (userId: string, sessionId: string) =>
   `session:${userId}:${sessionId}`;

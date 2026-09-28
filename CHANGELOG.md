@@ -2,6 +2,27 @@
 
 Phases are defined in [`SAAS_SPEC.md`](SAAS_SPEC.md) §10.
 
+## Account management
+
+People and organisations can now be looked after without the database.
+
+- `PATCH /me`: change your own name (any role). `/me` now returns it.
+- `PATCH /tenant`: organisation name and billing email, owner/admin, audited.
+  The slug stays - it is in URLs and exports.
+- Password reset: `POST /auth/forgot-password` emails a six-digit code (same
+  answer whether or not the account exists); `POST /auth/reset-password` sets
+  the password, ends every session and clears a login lockout. Only a hash is
+  stored; the code lasts 30 minutes and dies after five wrong tries.
+- Members: `POST /tenant/members/invite`, `PATCH /tenant/members/:id` (role,
+  disable/enable), `DELETE /tenant/members/:id`, owner/admin, audited. The
+  plan's member limit counts active and invited people, checked with the
+  organisation row locked. Someone new gets an account with no usable
+  password and sets one through "forgot password", which also accepts the
+  invitation. Only the owner grants or changes admin; nobody changes the
+  owner or themselves.
+- Email: `SMTP_URL` / `MAIL_FROM` via nodemailer 10 (7.x has open advisories).
+  Unset: logged in development, refused in production.
+
 ## Security review — OWASP Top 10:2025
 
 An audit against the 2025 list, with fixes. The finding that mattered: **forty

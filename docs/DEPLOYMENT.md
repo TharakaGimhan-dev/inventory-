@@ -43,6 +43,11 @@ API_URL=https://<your api domain>
 PAYHERE_MERCHANT_ID=<from the PayHere merchant portal>
 PAYHERE_SECRET=<from the PayHere merchant portal>
 PAYHERE_SANDBOX=false
+
+# Email: password codes and invitations. Leave SMTP_URL empty and, in
+# production, those requests answer 503 rather than logging a code.
+SMTP_URL=smtps://<user>:<password>@<smtp host>:465
+MAIL_FROM=AssetSnap <no-reply@your-domain>
 ```
 
 `WEB_URL` and `API_URL` build the return, cancel and notify URLs PayHere needs.

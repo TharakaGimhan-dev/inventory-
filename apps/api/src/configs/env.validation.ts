@@ -38,6 +38,10 @@ export const envSchema = z.object({
   PAYHERE_SECRET: z.string().optional(),
   // 'true' points checkout at PayHere's sandbox. Anything else is live.
   PAYHERE_SANDBOX: z.string().optional(),
+  // Email (password reset, invitations). Unset: logged in development,
+  // refused in production - see common/mail/mail.service.ts.
+  SMTP_URL: z.string().optional(),
+  MAIL_FROM: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

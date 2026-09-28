@@ -22,6 +22,16 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(10, 'Password must be at least 10 characters').max(200),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email().toLowerCase().trim(),
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email().toLowerCase().trim(),
+  code: z.string().regex(/^\d{6}$/, 'The code is six digits'),
+  newPassword: z.string().min(10, 'Password must be at least 10 characters').max(200),
+});
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -85,6 +95,34 @@ export class AuthController {
     const tokens = await this.auth.refresh(token);
     this.setCookies(res, tokens.accessToken, tokens.refreshToken);
     return tokens;
+  }
+
+  @Public()
+  // Each request can email someone: the sign-up limit, per address.
+  @Throttle({ default: { ttl: THROTTLE.SIGNUP.ttl, limit: THROTTLE.SIGNUP.limit } })
+  @Post('forgot-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Email a password code, if the account exists' })
+  async forgotPassword(
+    @Body(new ZodValidationPipe(forgotPasswordSchema)) body: { email: string },
+  ) {
+    await this.auth.forgotPassword(body.email);
+    // The same words whether or not the account exists.
+    return {
+      message: 'If an account uses that email, a code is on its way.',
+    };
+  }
+
+  @Public()
+  @Throttle({ default: { ttl: THROTTLE.AUTH.ttl, limit: THROTTLE.AUTH.limit } })
+  @Post('reset-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Set a new password with an emailed code' })
+  resetPassword(
+    @Body(new ZodValidationPipe(resetPasswordSchema))
+    body: { email: string; code: string; newPassword: string },
+  ) {
+    return this.auth.resetPassword(body.email, body.code, body.newPassword);
   }
 
   @Post('switch-tenant')

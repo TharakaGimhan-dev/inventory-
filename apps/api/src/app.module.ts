@@ -10,6 +10,7 @@ import { FeatureGuard } from './common/guards/feature.guard';
 import { QuotaGuard } from './common/guards/quota.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { SubscriptionAccessGuard } from './common/guards/subscription-access.guard';
+import { MailModule } from './common/mail/mail.service';
 import { SecurityModule } from './common/security/security.module';
 import { throttlerConfig } from './common/security/throttler.config';
 import { TenantContextInterceptor } from './common/middleware/tenant-context.interceptor';
@@ -37,6 +38,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
     // Drives the daily dunning and usage-reconciliation job.
     ScheduleModule.forRoot(),
     SecurityModule,
+    MailModule,
     ThrottlerModule.forRootAsync(throttlerConfig),
     DatabaseModule,
     RedisModule,

@@ -360,13 +360,16 @@ POST   /auth/refresh
 POST   /auth/logout
 POST   /auth/switch-tenant
 POST   /auth/forgot-password  /auth/reset-password  /auth/verify-email
+                                (forgot/reset built: 6-digit emailed code, 30 min, 5 tries)
 
 GET    /me                            user + memberships + active tenant + plan + usage
+PATCH  /me                            your own first/last name
 
 GET    /tenant                        settings
 PATCH  /tenant                        owner|admin
 GET    /tenant/members
-POST   /tenant/members/invite         owner|admin, quota: members
+POST   /tenant/members/invite         owner|admin, quota: members (active + invited);
+                                only the owner grants admin
 PATCH  /tenant/members/:id            role / disable
 DELETE /tenant/members/:id
 
