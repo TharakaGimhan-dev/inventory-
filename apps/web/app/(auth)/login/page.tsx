@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ApiError, api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { Brand } from '@/components/Brand';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,15 +41,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="shell">
-      <div className="centre">
-        <form onSubmit={submit} style={{ width: '100%', maxWidth: 380 }}>
-          <h1>TS Asset Register</h1>
+    <div className="auth">
+      <aside className="auth-side">
+        <Brand />
+        <div>
+          <h2>Know what you own, and prove it.</h2>
+          <p>
+            Every item gets a code that is never reused, and every change is
+            written to a record that nobody — not even an admin — can edit.
+          </p>
+        </div>
+        <ul>
+          <li>Capture on a phone, even with no signal. It syncs when you reconnect.</li>
+          <li>Print QR labels and stick them on the equipment.</li>
+          <li>Export your data any time, on any plan.</li>
+        </ul>
+      </aside>
+
+      <div className="auth-main">
+        <form onSubmit={submit} className="auth-form">
+          <div className="brand-wrap">
+            <Brand tagline />
+          </div>
+          <h1>Sign in</h1>
           <p className="muted" style={{ marginBottom: 24 }}>
-            Sign in to your organisation&rsquo;s inventory.
+            Use the email your organisation&rsquo;s admin registered for you.
           </p>
 
-          {error ? <div className="error">{error}</div> : null}
+          {error ? <div className="error" role="alert">{error}</div> : null}
 
           <div className="field">
             <label htmlFor="email">Email</label>
@@ -78,7 +98,7 @@ export default function LoginPage() {
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
 
-          <p className="muted" style={{ marginTop: 20, textAlign: 'center' }}>
+          <p className="muted" style={{ marginTop: 20 }}>
             No account? Your organisation&rsquo;s admin creates it for you.
           </p>
         </form>
