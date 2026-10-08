@@ -393,3 +393,17 @@ table.invoices .mono { font-family: var(--mono); font-size: 13px; }
 table.invoices .num { text-align: right; font-variant-numeric: tabular-nums; }
 table.invoices .pill { grid-row: auto; display: inline-block; }
 .auth-form .brand-wrap{margin-bottom:28px}@media(min-width:900px){.auth-form .brand-wrap{display:none}}
+
+/* ── Can't reach the server ────────────────────────────── */
+.unreach { width: 100%; max-width: 380px; text-align: center; }
+.unreach .primary { margin-top: 8px; }
+.unreach-count { margin-top: 14px; font-variant-numeric: tabular-nums; }
+.unreach-art { position: relative; width: 132px; height: 132px; margin: 0 auto 26px; display: grid; place-items: center; }
+.unreach-seal { width: 76px; height: 76px; position: relative; animation: seal-wobble 3.2s ease-in-out infinite; }
+.unreach-seal .crack { stroke-dasharray: 90; stroke-dashoffset: 90; animation: crack-draw 3.2s ease-in-out infinite; }
+.ring { position: absolute; inset: 0; border: 2px solid var(--accent); border-radius: 50%; opacity: 0; animation: ring-out 2.8s ease-out infinite; }
+.ring.r2 { animation-delay: 0.9s; }
+.ring.r3 { animation-delay: 1.8s; }
+@keyframes ring-out { 0% { transform: scale(0.45); opacity: 0.55; } 100% { transform: scale(1); opacity: 0; } }
+@keyframes seal-wobble { 0%, 55%, 100% { transform: rotate(0); } 62% { transform: rotate(-6deg); } 70% { transform: rotate(5deg); } 78% { transform: rotate(-3deg); } 86% { transform: rotate(0); } }
+@keyframes crack-draw { 0%, 50% { stroke-dashoffset: 90; } 68%, 92% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 90; } }

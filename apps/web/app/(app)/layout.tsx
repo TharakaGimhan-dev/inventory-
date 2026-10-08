@@ -5,6 +5,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Shell } from '@/components/Shell';
+import { Unreachable } from '@/components/Unreachable';
 import { useAuth } from '@/lib/auth';
 
 export default function AppLayout({
@@ -12,12 +13,12 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { me, loading, error } = useAuth();
+  const { me, loading, error, unreachable } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !me && !error) router.replace('/login');
-  }, [me, loading, error, router]);
+    if (!loading && !me && !error && !unreachable) router.replace('/login');
+  }, [me, loading, error, unreachable, router]);
 
   if (loading) {
     return (
@@ -28,6 +29,8 @@ export default function AppLayout({
       </div>
     );
   }
+
+  if (unreachable) return <Unreachable />;
 
   // A signed-in user with no membership. Carried over from the Firebase app,
   // where the same case arrived as permission-denied rather than a 401.
